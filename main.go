@@ -299,6 +299,11 @@ func indexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 			batch.Reset()
 		}
 
+		// didn't add anything in this batch and our last modified stayed the same, seen it all, break out
+		if batchCount == 0 && lastModified.Equal(batchModified) {
+			break
+		}
+
 		elapsed := time.Now().Sub(start)
 		rate := float32(processedCount) / (float32(elapsed) / float32(time.Second))
 		log.WithFields(map[string]interface{}{
@@ -307,11 +312,6 @@ func indexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 			"deleted": deletedCount,
 			"elapsed": elapsed,
 			"index":   index}).Info("updated contact index")
-
-		// didn't add anything in this batch and our last modified stayed the same, seen it all, break out
-		if batchCount == 0 && lastModified.Equal(batchModified) {
-			break
-		}
 
 		rows.Close()
 	}

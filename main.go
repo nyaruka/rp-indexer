@@ -343,7 +343,7 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM(
         ) as f
     ) as fields
     FROM contacts_contact
-	WHERE is_test = FALSE and modified_on >= $1 and id < 40000
+	WHERE is_test = FALSE and modified_on >= $1
 	ORDER BY modified_on ASC, id ASC
 	LIMIT 10000
 ) t

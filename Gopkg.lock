@@ -34,8 +34,8 @@
 [[projects]]
   name = "github.com/nyaruka/ezconf"
   packages = ["."]
-  revision = "7dd84bce04100f2593950769a2d09052b8117b79"
-  version = "v0.1.1"
+  revision = "4189460bbdbcd38bb447e77ab6421747ce65b1b4"
+  version = "v0.2.1"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -61,6 +61,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d51a400d77cb6f9f54cb0515d2000529107627f77757839255f3ba4dc2d7d536"
+  inputs-digest = "729f05725acb3250e1606b2fad0e16616f0e805c526493591c9d376754f460e6"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -203,6 +203,7 @@ func main() {
 			os.Exit(0)
 		} else {
 			time.Sleep(time.Second * 5)
+			physicalIndex = findPhysicalIndex(config.ElasticURL, config.Index)
 		}
 	}
 }

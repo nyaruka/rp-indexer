@@ -180,7 +180,7 @@ func main() {
 			logError(config.Rebuild, err, "error indexing contacts")
 			continue
 		}
-		log.WithField("indexed", indexed).WithField("deleted", deleted).WithField("elapsed", time.Now().Sub(start)).Info("completed indexing")
+		log.WithField("added", indexed).WithField("deleted", deleted).WithField("elapsed", time.Now().Sub(start)).Info("completed indexing")
 
 		// if the index didn't previously exist or we are rebuilding, remap to our alias
 		if oldIndex == "" || config.Rebuild {
@@ -309,7 +309,7 @@ func indexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 		rate := float32(processedCount) / (float32(elapsed) / float32(time.Second))
 		log.WithFields(map[string]interface{}{
 			"rate":    int(rate),
-			"indexed": createdCount,
+			"added":   createdCount,
 			"deleted": deletedCount,
 			"elapsed": elapsed,
 			"index":   index}).Info("updated contact index")
@@ -344,7 +344,7 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM(
         ) as f
     ) as fields
     FROM contacts_contact
-	WHERE is_test = FALSE and modified_on >= $1
+	WHERE is_test = FALSE AND modified_on >= $1
 	ORDER BY modified_on ASC
 	LIMIT 10000
 ) t
@@ -358,7 +358,26 @@ const indexSettings = `
 			"number_of_shards": 5,
 			"number_of_replicas": 1,
 			"routing_partition_size": 3
-		}
+		},
+		"analysis": {
+            "filter": {
+                "trigrams_filter": {
+                    "type":     "ngram",
+                    "min_gram": 3,
+                    "max_gram": 3
+                }
+            },
+            "analyzer": {
+                "trigrams": {
+                    "type":      "custom",
+                    "tokenizer": "standard",
+                    "filter":   [
+                        "lowercase",
+                        "trigrams_filter"
+                    ]
+                }
+            }
+        }
 	},
 
 	"mappings": {
@@ -406,6 +425,7 @@ const indexSettings = `
 					"properties": {
 						"path": {
 							"type": "text",
+							"analyzer": "trigrams",
 							"fields": {
 								"keyword": {
 									"type": "keyword",

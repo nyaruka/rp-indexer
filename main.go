@@ -365,18 +365,39 @@ const indexSettings = `
                     "type":     "ngram",
                     "min_gram": 3,
                     "max_gram": 3
-                }
+				}
             },
             "analyzer": {
                 "trigrams": {
                     "type":      "custom",
                     "tokenizer": "standard",
-                    "filter":   [
+                    "filter": [
                         "lowercase",
                         "trigrams_filter"
                     ]
-                }
-            }
+				},
+				"locations": {
+					"tokenizer": "location_tokenizer",
+					"filter": [
+						"lowercase",
+						"word_delimiter"
+					]
+				}
+			},
+			"tokenizer": {
+				"location_tokenizer": {
+				  "type": "pattern",
+				  "pattern": "(.* > )?([^>]+)",
+				  "group": 2
+				}
+			},
+			"normalizer": {
+				"lowercase": {
+					"type": "custom",
+					"char_filter": [],
+					"filter": ["lowercase"]
+				}
+			}
         }
 	},
 
@@ -393,14 +414,9 @@ const indexSettings = `
 							"type": "keyword"
 						},
 						"text": {
-							"type": "text",
-							"analyzer": "simple",
-							"fields": {
-								"keyword": {
-									"type": "keyword",
-									"ignore_above": 64
-								}
-							}
+							"type": "keyword",
+							"ignore_above": 64,
+							"normalizer": "lowercase"
 						},
 						"decimal": {
 							"type": "scaled_float",
@@ -410,13 +426,16 @@ const indexSettings = `
 							"type": "date"
 						},
 						"state": {
-							"type": "keyword"
+							"type": "text",
+							"analyzer": "locations"
 						},
 						"district": {
-							"type": "keyword"
+							"type": "text",
+							"analyzer": "locations"
 						},
 						"ward": {
-							"type": "keyword"
+							"type": "text",
+							"analyzer": "locations"
 						}
 					}
 				},
@@ -429,12 +448,14 @@ const indexSettings = `
 							"fields": {
 								"keyword": {
 									"type": "keyword",
-									"ignore_above": 64
+									"ignore_above": 64,
+									"normalizer": "lowercase"
 								}
 							}
 						},
 						"scheme": {
-							"type": "keyword"
+							"type": "keyword",
+							"normalizer": "lowercase"
 						}
 					}
 				},
@@ -442,7 +463,8 @@ const indexSettings = `
 					"type": "keyword"
 				},
 				"language": {
-					"type": "keyword"
+					"type": "keyword",
+					"normalizer": "lowercase"
 				},
 				"modified_on": {
 					"type": "date"
@@ -453,7 +475,8 @@ const indexSettings = `
 					"fields": {
 						"keyword": {
 							"type": "keyword",
-							"ignore_above": 64
+							"ignore_above": 64,
+							"normalizer": "lowercase"
 						}
 					}
 				}

@@ -379,7 +379,8 @@ const indexSettings = `
 				"locations": {
 					"tokenizer": "location_tokenizer",
 					"filter": [
-						"lowercase"
+						"lowercase",
+						"word_delimiter"
 					]
 				}
 			},

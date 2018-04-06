@@ -3,14 +3,15 @@ language: go
 addons:
   postgresql: '9.6'
 
-services:
-  - elasticsearch
-
 go:
 - "1.10"
 
-before_script:
+before_install:
+  - wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.2.3.deb && sudo dpkg -i --force-confnew elasticsearch-6.2.3.deb
+  - sudo service elasticsearch start
   - sleep 10
+
+before_script:
   - psql -U postgres -c "CREATE DATABASE elastic_test;"
 
 script:

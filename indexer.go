@@ -1,4 +1,4 @@
-package main
+package indexer
 
 import (
 	"bytes"
@@ -7,23 +7,23 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
+	"sort"
 	"strings"
 	"time"
 
-	_ "github.com/lib/pq"
-	"github.com/nyaruka/ezconf"
 	log "github.com/sirupsen/logrus"
 )
 
-// Creates a new index for the passed in alias.
+var batchSize = 500
+
+// CreateNewIndex creates a new index for the passed in alias.
 //
 // Note that we do not create an index with the passed name, instead creating one
 // based on the day, for example `contacts_2018_03_05`, then create an alias from
 // that index to `contacts`.
 //
 // If the day-specific name already exists, we append a .1 or .2 to the name.
-func createNewIndex(url string, alias string) (string, error) {
+func CreateNewIndex(url string, alias string) (string, error) {
 	// create our day-specific name
 	physicalIndex := fmt.Sprintf("%s_%s", alias, time.Now().Format("2006_01_02"))
 	idx := 0
@@ -46,7 +46,7 @@ func createNewIndex(url string, alias string) (string, error) {
 
 	// initialize our index
 	createURL := fmt.Sprintf("%s/%s", url, physicalIndex)
-	_, err := makeJSONRequest(http.MethodPut, createURL, indexSettings, nil)
+	_, err := MakeJSONRequest(http.MethodPut, createURL, indexSettings, nil)
 	if err != nil {
 		return "", err
 	}
@@ -56,13 +56,13 @@ func createNewIndex(url string, alias string) (string, error) {
 	return physicalIndex, nil
 }
 
-// Queries our index and finds the last modified contact, returning it
-func getLastModified(url string, index string) (time.Time, error) {
+// GetLastModified queries our index and finds the last modified contact, returning it
+func GetLastModified(url string, index string) (time.Time, error) {
 	lastModified := time.Time{}
 
 	// get the newest document on our index
 	queryResponse := queryResponse{}
-	_, err := makeJSONRequest(http.MethodPost, fmt.Sprintf("%s/%s/_search", url, index), lastModifiedQuery, &queryResponse)
+	_, err := MakeJSONRequest(http.MethodPost, fmt.Sprintf("%s/%s/_search", url, index), lastModifiedQuery, &queryResponse)
 	if err != nil {
 		return lastModified, err
 	}
@@ -73,32 +73,29 @@ func getLastModified(url string, index string) (time.Time, error) {
 	return lastModified, nil
 }
 
-// Finds the physical index backing the passed in alias
-func findPhysicalIndex(url string, alias string) string {
+// FindPhysicalIndexes finds all the physical indexes for the passed in alias
+func FindPhysicalIndexes(url string, alias string) []string {
 	indexResponse := infoResponse{}
-	_, err := makeJSONRequest(http.MethodGet, fmt.Sprintf("%s/%s", url, alias), "", &indexResponse)
+	_, err := MakeJSONRequest(http.MethodGet, fmt.Sprintf("%s/%s", url, alias), "", &indexResponse)
+	indexes := make([]string, 0)
 
 	// error could mean a variety of things, but we'll figure that out later
 	if err != nil {
-		return ""
+		return indexes
 	}
 
 	// our top level key is our physical index name
 	for key := range indexResponse {
-		return key
+		indexes = append(indexes, key)
 	}
 
-	return ""
+	// reverse sort order should put our newest index first
+	sort.Sort(sort.Reverse(sort.StringSlice(indexes)))
+	return indexes
 }
 
-// Returns the JSON marshalled value of the passed in value
-func jsonEscape(value interface{}) string {
-	bs, _ := json.Marshal(value)
-	return string(bs)
-}
-
-// Utility function to make a JSON request, optionally decoding the response into the passed in struct
-func makeJSONRequest(method string, url string, body string, jsonStruct interface{}) (*http.Response, error) {
+// MakeJSONRequest is a utility function to make a JSON request, optionally decoding the response into the passed in struct
+func MakeJSONRequest(method string, url string, body string, jsonStruct interface{}) (*http.Response, error) {
 	req, _ := http.NewRequest(method, url, bytes.NewReader([]byte(body)))
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
@@ -125,93 +122,11 @@ func makeJSONRequest(method string, url string, body string, jsonStruct interfac
 	return resp, err
 }
 
-func logError(fatal bool, err error, msg string) {
-	if fatal {
-		log.WithError(err).Fatal(msg)
-	} else {
-		log.WithError(err).Error(msg)
-		time.Sleep(time.Second * 5)
-	}
-}
-
-func main() {
-	config := config{
-		ElasticURL: "http://localhost:9200",
-		DB:         "postgres://localhost/rapidpro",
-		Index:      "contacts",
-		Poll:       5,
-		Rebuild:    false,
-	}
-	loader := ezconf.NewLoader(&config, "indexer", "Indexes RapidPro contacts to ElasticSearch", []string{"indexer.toml"})
-	loader.MustLoad()
-
-	log.SetFormatter(&log.TextFormatter{})
-	log.SetLevel(log.InfoLevel)
-
-	db, err := sql.Open("postgres", config.DB)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	physicalIndex := findPhysicalIndex(config.ElasticURL, config.Index)
-	oldIndex := physicalIndex
-
-	// doesn't exist or we are rebuilding, create it
-	if physicalIndex == "" || config.Rebuild {
-		physicalIndex, err = createNewIndex(config.ElasticURL, config.Index)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	for {
-		lastModified, err := getLastModified(config.ElasticURL, physicalIndex)
-		if err != nil {
-			logError(config.Rebuild, err, "error finding last modified")
-			continue
-		}
-
-		start := time.Now()
-		log.WithField("last_modified", lastModified).Info("indexing contacts newer than last modified")
-
-		// now index our docs
-		indexed, deleted, err := indexContacts(db, config.ElasticURL, physicalIndex, lastModified)
-		if err != nil {
-			logError(config.Rebuild, err, "error indexing contacts")
-			continue
-		}
-		log.WithField("added", indexed).WithField("deleted", deleted).WithField("elapsed", time.Now().Sub(start)).Info("completed indexing")
-
-		// if the index didn't previously exist or we are rebuilding, remap to our alias
-		if oldIndex == "" || config.Rebuild {
-			aliasMapping := fmt.Sprintf(addAliasCommand, jsonEscape(physicalIndex), jsonEscape(config.Index))
-			if oldIndex != "" {
-				aliasMapping = fmt.Sprintf(replaceAliasCommand, jsonEscape(oldIndex), jsonEscape(config.Index), jsonEscape(physicalIndex), jsonEscape(config.Index))
-			}
-			log.WithField("index", physicalIndex).WithField("alias", config.Index).Info("remapped index to alias")
-
-			aliasURL := fmt.Sprintf("%s/_aliases", config.ElasticURL)
-			_, err := makeJSONRequest(http.MethodPost, aliasURL, aliasMapping, nil)
-			if err != nil {
-				logError(config.Rebuild, err, "error mapping alias")
-				continue
-			}
-			oldIndex = physicalIndex
-		}
-
-		if config.Rebuild {
-			os.Exit(0)
-		} else {
-			time.Sleep(time.Second * 5)
-			physicalIndex = findPhysicalIndex(config.ElasticURL, config.Index)
-		}
-	}
-}
-
-func indexBatch(elasticURL string, index string, batch string) (int, int, error) {
+// IndexBatch indexes the batch of contacts
+func IndexBatch(elasticURL string, index string, batch string) (int, int, error) {
 	response := indexResponse{}
 	indexURL := fmt.Sprintf("%s/%s/_bulk", elasticURL, index)
-	_, err := makeJSONRequest(http.MethodPut, indexURL, batch, &response)
+	_, err := MakeJSONRequest(http.MethodPut, indexURL, batch, &response)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -228,7 +143,8 @@ func indexBatch(elasticURL string, index string, batch string) (int, int, error)
 	return createdCount, deletedCount, nil
 }
 
-func indexContacts(db *sql.DB, elasticURL string, index string, lastModified time.Time) (int, int, error) {
+// IndexContacts queries and indexes all contacts with a lastModified greater than or equal to the passed in time
+func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified time.Time) (int, int, error) {
 	batch := strings.Builder{}
 	createdCount, deletedCount := 0, 0
 	processedCount := 0
@@ -252,13 +168,13 @@ func indexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 			return 0, 0, nil
 		}
 		if err != nil {
-			log.Fatal(err)
+			return 0, 0, err
 		}
 
 		for rows.Next() {
 			err = rows.Scan(&orgID, &id, &modifiedOn, &isActive, &contactJSON)
 			if err != nil {
-				log.Fatal(err)
+				return 0, 0, err
 			}
 
 			processedCount++
@@ -274,8 +190,8 @@ func indexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 			}
 
 			// write to elastic search in batches of 500
-			if processedCount%500 == 0 {
-				created, deleted, err := indexBatch(elasticURL, index, batch.String())
+			if processedCount%batchSize == 0 {
+				created, deleted, err := IndexBatch(elasticURL, index, batch.String())
 				if err != nil {
 					return 0, 0, err
 				}
@@ -290,7 +206,7 @@ func indexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 		}
 
 		if batch.Len() > 0 {
-			created, deleted, err := indexBatch(elasticURL, index, batch.String())
+			created, deleted, err := IndexBatch(elasticURL, index, batch.String())
 			if err != nil {
 				return 0, 0, err
 			}
@@ -320,12 +236,37 @@ func indexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 	return createdCount, deletedCount, nil
 }
 
-type config struct {
-	ElasticURL string `help:"the url for our elastic search instance"`
-	DB         string `help:"the connection string for our database"`
-	Index      string `help:"the alias for our contact index"`
-	Poll       int    `help:"the number of seconds to wait between checking for updated contacts"`
-	Rebuild    bool   `help:"whether to rebuild the index, swapping it when complete, then exiting (default false)"`
+// MapIndexAlias maps the passed in alias to the new physical index, optionally removing
+// existing aliases if they exit.
+func MapIndexAlias(elasticURL string, alias string, newIndex string) error {
+	commands := make([]interface{}, 0)
+
+	// find existing physical indexes
+	existing := FindPhysicalIndexes(elasticURL, alias)
+	for _, idx := range existing {
+		remove := removeAliasCommand{}
+		remove.Remove.Alias = alias
+		remove.Remove.Index = idx
+		commands = append(commands, remove)
+
+		log.WithField("index", idx).WithField("alias", alias).Info("removing old alias")
+	}
+
+	// add our new index
+	add := addAliasCommand{}
+	add.Add.Alias = alias
+	add.Add.Index = newIndex
+	commands = append(commands, add)
+
+	log.WithField("index", newIndex).WithField("alias", alias).Info("adding new alias")
+
+	aliasURL := fmt.Sprintf("%s/_aliases", elasticURL)
+	aliasJSON, err := json.Marshal(aliasCommand{Actions: commands})
+	if err != nil {
+		return err
+	}
+	_, err = MakeJSONRequest(http.MethodPost, aliasURL, string(aliasJSON), nil)
+	return err
 }
 
 const contactQuery = `
@@ -427,15 +368,36 @@ const indexSettings = `
 						},
 						"state": {
 							"type": "text",
-							"analyzer": "locations"
+							"analyzer": "locations",
+							"fields": {
+								"keyword": {
+									"type": "keyword",
+									"ignore_above": 128,
+									"normalizer": "lowercase"
+								}
+							}							
 						},
 						"district": {
 							"type": "text",
-							"analyzer": "locations"
+							"analyzer": "locations",
+							"fields": {
+								"keyword": {
+									"type": "keyword",
+									"ignore_above": 128,
+									"normalizer": "lowercase"
+								}
+							}							
 						},
 						"ward": {
 							"type": "text",
-							"analyzer": "locations"
+							"analyzer": "locations",
+							"fields": {
+								"keyword": {
+									"type": "keyword",
+									"ignore_above": 128,
+									"normalizer": "lowercase"
+								}
+							}
 						}
 					}
 				},
@@ -496,10 +458,25 @@ const indexCommand = `{ "index": { "_id": %d, "_type": "_doc", "_version": %d, "
 const deleteCommand = `{ "delete" : { "_id": %d, "_type": "_doc", "_version": %d, "_version_type": "external", "_routing": %d} }`
 
 // adds an alias for an index
-const addAliasCommand = `{"actions": [{ "add": { "index": %s, "alias": %s }}]}`
+type addAliasCommand struct {
+	Add struct {
+		Index string `json:"index"`
+		Alias string `json:"alias"`
+	} `json:"add"`
+}
 
-// atomically removes an alias for an index and adds a new one
-const replaceAliasCommand = `{"actions": [{ "remove": { "index": %s, "alias": %s }}, { "add": { "index": %s, "alias": %s }}]}`
+// removes an alias for an index
+type removeAliasCommand struct {
+	Remove struct {
+		Index string `json:"index"`
+		Alias string `json:"alias"`
+	} `json:"remove"`
+}
+
+// our top level command for remapping aliases
+type aliasCommand struct {
+	Actions []interface{} `json:"actions"`
+}
 
 // our response for finding the most recent contact
 type queryResponse struct {

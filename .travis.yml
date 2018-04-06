@@ -3,8 +3,15 @@ language: go
 addons:
   postgresql: '9.6'
 
+services:
+  - elasticsearch
+
 go:
 - "1.10"
+
+before_script:
+  - sleep 10
+  - psql -U postgres -c "CREATE DATABASE elastic_test;"
 
 script:
 - go test -p=1 -coverprofile=coverage.text -covermode=atomic github.com/nyaruka/rp-indexer/...

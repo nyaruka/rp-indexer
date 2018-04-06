@@ -1,6 +1,6 @@
 build:
   main: ./main.go
-  binary: rp-indexer
+  binary: ./cmd/rp-indexer
   goos:
     - windows
     - darwin

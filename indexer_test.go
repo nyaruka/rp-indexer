@@ -99,6 +99,12 @@ func TestIndexing(t *testing.T) {
 		elastic.NewMatchQuery("urns.path", "911")))
 	assertQuery(t, client, physicalName, query, []int64{1})
 
+	// match a contact with multiple tel urns
+	query = elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(
+		elastic.NewMatchQuery("urns.scheme", "tel"),
+		elastic.NewMatchQuery("urns.path", "222")))
+	assertQuery(t, client, physicalName, query, []int64{1})
+
 	// text query
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "17103bb1-1b48-4b70-92f7-1f6b73bd3488"),

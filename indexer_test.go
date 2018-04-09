@@ -66,8 +66,8 @@ func TestIndexing(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 
-	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "john"), []int64{5})
-	assertQuery(t, client, physicalName, elastic.NewTermQuery("name.keyword", "john doe"), []int64{5})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "JOHn"), []int64{5})
+	assertQuery(t, client, physicalName, elastic.NewTermQuery("name.keyword", "JOHN DOE"), []int64{5})
 
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("language", "eng"), []int64{1})
 
@@ -174,6 +174,11 @@ func TestIndexing(t *testing.T) {
 		elastic.NewMatchPhraseQuery("fields.ward.keyword", "usa > washington > king county > central district")))
 	assertQuery(t, client, physicalName, query, []int64{9})
 
+	// group query
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("groups", "4ea0f313-2f62-4e57-bdf0-232b5191dd57"), []int64{1})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1, 3})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("groups", "4c016340-468d-4675-a974-15cb7a45a5ab"), []int64{})
+
 	lastModified, err := GetLastModified(elasticURL, physicalName)
 	assert.NoError(t, err)
 	assert.Equal(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), lastModified.In(time.UTC))
@@ -222,4 +227,7 @@ func TestIndexing(t *testing.T) {
 
 	// should only match new john, old john is gone
 	assertQuery(t, client, indexName, elastic.NewMatchQuery("name", "john"), []int64{3})
+
+	// 3 is no longer in our group
+	assertQuery(t, client, indexName, elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1})
 }

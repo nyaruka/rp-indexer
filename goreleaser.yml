@@ -1,5 +1,5 @@
 build:
-  main: ./main.go
+  main: ./cmd/rp-indexer/main.go
   binary: ./cmd/rp-indexer
   goos:
     - windows

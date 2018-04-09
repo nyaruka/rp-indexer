@@ -1,3 +1,7 @@
+v1.0.3
+----------
+ * Fix goreleaser config
+
 v1.0.2
 ----------
  * index groups by uuid for each contact

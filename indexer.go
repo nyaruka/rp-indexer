@@ -283,7 +283,14 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM(
         SELECT jsonb_agg(f.value) FROM (
             SELECT value||jsonb_build_object('field', key) as value from jsonb_each(contacts_contact.fields)
         ) as f
-    ) as fields
+	) as fields,
+	(
+		SELECT array_to_json(array_agg(g.uuid)) FROM (
+			SELECT contacts_contactgroup.uuid
+			FROM contacts_contactgroup_contacts, contacts_contactgroup
+			WHERE contact_id=contacts_contact.id AND contacts_contactgroup_contacts.contactgroup_id = contacts_contactgroup.id
+		) g
+	) as groups
     FROM contacts_contact
 	WHERE is_test = FALSE AND modified_on >= $1
 	ORDER BY modified_on ASC
@@ -420,6 +427,9 @@ const indexSettings = `
 							"normalizer": "lowercase"
 						}
 					}
+				},
+				"groups": {
+					"type": "keyword"
 				},
 				"uuid": {
 					"type": "keyword"

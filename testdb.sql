@@ -48,6 +48,38 @@ CREATE SEQUENCE contacts_contacturn_id_seq
 
 ALTER SEQUENCE contacts_contacturn_id_seq OWNED BY contacts_contacturn.id;
 
+DROP TABLE IF EXISTS contacts_contactgroup CASCADE;
+CREATE TABLE contacts_contactgroup (
+    id integer NOT NULL,
+    uuid character varying(36) NOT NULL,
+    name character varying(128) NOT NULL
+);
+
+CREATE SEQUENCE contacts_contactgroup_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE contacts_contactgroup_id_seq OWNED BY contacts_contactgroup.id;
+
+DROP TABLE IF EXISTS contacts_contactgroup_contacts CASCADE;
+CREATE TABLE contacts_contactgroup_contacts (
+    id integer NOT NULL,
+    contactgroup_id integer NOT NULL,
+    contact_id integer NOT NULL
+);
+
+CREATE SEQUENCE contacts_contactgroup_contacts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE contacts_contactgroup_contacts_id_seq OWNED BY contacts_contactgroup_contacts.id;
+
 -- Fields:
 -- 17103bb1-1b48-4b70-92f7-1f6b73bd3488 - nickname (text)
 -- 05bca1cd-e322-4837-9595-86d0d85e5adb - age (numeric)
@@ -90,3 +122,15 @@ INSERT INTO contacts_contacturn(id, contact_id, scheme, org_id, priority, path, 
 (10, 9, 'facebook', 2, 90, 1000001, 'funguy', 'facebook:1000001'),
 (11, 10, 'twitterid', 2, 90, 1000001, 'fungal', 'twitterid:1000001'),
 (12, 11, 'whatsapp',  2, 90, 1000003, NULL, 'whatsapp:1000003');
+
+INSERT INTO contacts_contactgroup(id, uuid, name) VALUES
+(1, '4ea0f313-2f62-4e57-bdf0-232b5191dd57', 'Group 1'),
+(2, '4c016340-468d-4675-a974-15cb7a45a5ab', 'Group 2'),
+(3, 'e61b5bf7-8ddf-4e05-b0a8-4c46a6b68cff', 'Group 3'),
+(4, '529bac39-550a-4d6f-817c-1833f3449007', 'Group 4');
+
+INSERT INTO contacts_contactgroup_contacts(id, contact_id, contactgroup_id) VALUES
+(1, 1, 1),
+(2, 2, 1),
+(3, 1, 4),
+(4, 3, 4);

@@ -1,3 +1,7 @@
+v1.0.4
+----------
+ * Put rp-indexer binary in root dir
+
 v1.0.3
 ----------
  * Fix goreleaser config

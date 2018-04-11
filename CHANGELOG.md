@@ -1,3 +1,8 @@
+v1.0.6
+----------
+ * use trigram tokenizer instead of filter to allow for phrase queries on urn paths
+ * store both a keyword and tokenized version of locations (without any path)
+
 v1.0.5
 ----------
  * Fix Travis goreleaser releases

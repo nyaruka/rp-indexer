@@ -137,10 +137,15 @@ func TestIndexing(t *testing.T) {
 
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "22d11697-edba-4186-b084-793e3b876379"),
-		elastic.NewMatchPhraseQuery("fields.state.keyword", "usa > washington")))
+		elastic.NewMatchQuery("fields.state.keyword", "  washington")))
 	assertQuery(t, client, physicalName, query, []int64{6})
 
 	// doesn't include country
+	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
+		elastic.NewMatchQuery("fields.field", "22d11697-edba-4186-b084-793e3b876379"),
+		elastic.NewMatchQuery("fields.state.keyword", "usa")))
+	assertQuery(t, client, physicalName, query, []int64{})
+
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "22d11697-edba-4186-b084-793e3b876379"),
 		elastic.NewMatchPhraseQuery("fields.state", "usa")))
@@ -160,7 +165,7 @@ func TestIndexing(t *testing.T) {
 
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "fcab2439-861c-4832-aa54-0c97f38f24ab"),
-		elastic.NewMatchPhraseQuery("fields.district.keyword", "usa > washington > king county")))
+		elastic.NewMatchQuery("fields.district.keyword", "King County")))
 	assertQuery(t, client, physicalName, query, []int64{8})
 
 	// ward query
@@ -171,8 +176,14 @@ func TestIndexing(t *testing.T) {
 
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "a551ade4-e5a0-4d83-b185-53b515ad2f2a"),
-		elastic.NewMatchPhraseQuery("fields.ward.keyword", "usa > washington > king county > central district")))
+		elastic.NewMatchQuery("fields.ward.keyword", "central district")))
 	assertQuery(t, client, physicalName, query, []int64{9})
+
+	// no substring though on keyword
+	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
+		elastic.NewMatchQuery("fields.field", "a551ade4-e5a0-4d83-b185-53b515ad2f2a"),
+		elastic.NewMatchQuery("fields.ward.keyword", "district")))
+	assertQuery(t, client, physicalName, query, []int64{})
 
 	// group query
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("groups", "4ea0f313-2f62-4e57-bdf0-232b5191dd57"), []int64{1})

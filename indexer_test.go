@@ -88,21 +88,25 @@ func TestIndexing(t *testing.T) {
 	// urn substring query
 	query = elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("urns.scheme", "tel"),
-		elastic.NewMatchQuery("urns.path", "779")))
-	assertQuery(t, client, physicalName, query, []int64{1, 3, 4, 5, 6, 7})
+		elastic.NewMatchPhraseQuery("urns.path", "779")))
+	assertQuery(t, client, physicalName, query, []int64{1, 3, 4, 7})
 
 	// urn substring query with more characters (77911)
 	query = elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("urns.scheme", "tel"),
-		elastic.NewMatchQuery("urns.path", "779"),
-		elastic.NewMatchQuery("urns.path", "791"),
-		elastic.NewMatchQuery("urns.path", "911")))
+		elastic.NewMatchPhraseQuery("urns.path", "77911")))
 	assertQuery(t, client, physicalName, query, []int64{1})
+
+	// urn substring query with more characters (600055)
+	query = elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(
+		elastic.NewMatchQuery("urns.scheme", "tel"),
+		elastic.NewMatchPhraseQuery("urns.path", "600055")))
+	assertQuery(t, client, physicalName, query, []int64{6})
 
 	// match a contact with multiple tel urns
 	query = elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("urns.scheme", "tel"),
-		elastic.NewMatchQuery("urns.path", "222")))
+		elastic.NewMatchPhraseQuery("urns.path", "222")))
 	assertQuery(t, client, physicalName, query, []int64{1})
 
 	// text query

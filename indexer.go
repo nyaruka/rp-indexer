@@ -308,20 +308,12 @@ const indexSettings = `
 			"routing_partition_size": 3
 		},
 		"analysis": {
-            "filter": {
-                "trigrams_filter": {
-                    "type":     "ngram",
-                    "min_gram": 3,
-                    "max_gram": 3
-				}
-            },
             "analyzer": {
                 "trigrams": {
                     "type":      "custom",
-                    "tokenizer": "standard",
+                    "tokenizer": "trigram",
                     "filter": [
-                        "lowercase",
-                        "trigrams_filter"
+                        "lowercase"
                     ]
 				},
 				"locations": {
@@ -344,6 +336,11 @@ const indexSettings = `
 				  "type": "pattern",
 				  "pattern": "(.* > )?([^>]+)",
 				  "group": 2
+				},
+				"trigram": {
+					"type" : "ngram",
+					"min_gram" : 3,
+					"max_gram" : 3
 				}
 			},
 			"normalizer": {

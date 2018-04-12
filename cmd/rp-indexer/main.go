@@ -98,7 +98,7 @@ func main() {
 			time.Sleep(time.Second * 5)
 			physicalIndex = ""
 			physicalIndexes = indexer.FindPhysicalIndexes(config.ElasticURL, config.Index)
-			log.WithField("physicalIndexes", physicalIndexes).WithField("index", config.Index).Info("found physical indexes")
+			log.WithField("physicalIndexes", physicalIndexes).WithField("index", config.Index).Debug("found physical indexes")
 			if len(physicalIndex) > 0 {
 				physicalIndex = physicalIndexes[0]
 			}

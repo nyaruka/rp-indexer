@@ -1,3 +1,7 @@
+v1.0.11
+----------
+ * refactor main loop in indexer
+
 v1.0.10
 ----------
  * more logging, deal with missing physical indexes

@@ -48,6 +48,7 @@ func main() {
 	}
 
 	physicalIndexes := indexer.FindPhysicalIndexes(config.ElasticURL, config.Index)
+	log.WithField("physicalIndexes", physicalIndexes).WithField("index", config.Index).Info("found physical indexes")
 	physicalIndex := ""
 	if len(physicalIndexes) > 0 {
 		physicalIndex = physicalIndexes[0]
@@ -58,8 +59,9 @@ func main() {
 	if physicalIndex == "" || config.Rebuild {
 		physicalIndex, err = indexer.CreateNewIndex(config.ElasticURL, config.Index)
 		if err != nil {
-			log.Fatal(err)
+			log.WithError(err).Fatal("error creating new index")
 		}
+		log.WithField("index", config.Index).WithField("physicalIndex", physicalIndex).Info("created new physical index")
 	}
 
 	for {
@@ -96,6 +98,7 @@ func main() {
 			time.Sleep(time.Second * 5)
 			physicalIndex = ""
 			physicalIndexes = indexer.FindPhysicalIndexes(config.ElasticURL, config.Index)
+			log.WithField("physicalIndexes", physicalIndexes).WithField("index", config.Index).Info("found physical indexes")
 			if len(physicalIndex) > 0 {
 				physicalIndex = physicalIndexes[0]
 			}

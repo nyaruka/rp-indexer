@@ -17,6 +17,7 @@ type config struct {
 	Index      string `help:"the alias for our contact index"`
 	Poll       int    `help:"the number of seconds to wait between checking for updated contacts"`
 	Rebuild    bool   `help:"whether to rebuild the index, swapping it when complete, then exiting (default false)"`
+	LogLevel   string `help:"the log level, one of error, warn, info, debug"`
 }
 
 func main() {
@@ -26,12 +27,20 @@ func main() {
 		Index:      "contacts",
 		Poll:       5,
 		Rebuild:    false,
+		LogLevel:   "info",
 	}
 	loader := ezconf.NewLoader(&config, "indexer", "Indexes RapidPro contacts to ElasticSearch", []string{"indexer.toml"})
 	loader.MustLoad()
 
+	// configure our logger
+	log.SetOutput(os.Stdout)
 	log.SetFormatter(&log.TextFormatter{})
-	log.SetLevel(log.InfoLevel)
+
+	level, err := log.ParseLevel(config.LogLevel)
+	if err != nil {
+		log.Fatalf("Invalid log level '%s'", level)
+	}
+	log.SetLevel(level)
 
 	db, err := sql.Open("postgres", config.DB)
 	if err != nil {

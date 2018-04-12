@@ -99,46 +99,74 @@ func MakeJSONRequest(method string, url string, body string, jsonStruct interfac
 	req, _ := http.NewRequest(method, url, bytes.NewReader([]byte(body)))
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
+
+	l := log.WithField("url", url).WithField("method", method).WithField("body", body)
 	if err != nil {
+		l.WithError(err).Error("error making ES request")
 		return resp, err
 	}
 
 	// if we have a body, try to decode it
 	jsonBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		l.WithError(err).Error("error reading ES response")
 		return resp, err
 	}
 
+	l = log.WithField("body", string(jsonBody)).WithField("status", resp.StatusCode)
+
 	// error if we got a non-200
 	if resp.StatusCode != http.StatusOK {
+		l.WithError(err).Error("error reaching ES")
 		return resp, fmt.Errorf("received non 200 response %d: %s", resp.StatusCode, jsonBody)
 	}
 
 	if jsonStruct == nil {
+		l.Debug("ES request successful")
 		return resp, nil
 	}
 
 	err = json.Unmarshal(jsonBody, jsonStruct)
-	return resp, err
+	if err != nil {
+		l.WithError(err).Error("error unmarshalling ES response")
+		return resp, err
+	}
+
+	l.Debug("ES request successful")
+	return resp, nil
 }
 
 // IndexBatch indexes the batch of contacts
 func IndexBatch(elasticURL string, index string, batch string) (int, int, error) {
 	response := indexResponse{}
 	indexURL := fmt.Sprintf("%s/%s/_bulk", elasticURL, index)
+
 	_, err := MakeJSONRequest(http.MethodPut, indexURL, batch, &response)
 	if err != nil {
 		return 0, 0, err
 	}
 
-	createdCount, deletedCount := 0, 0
+	createdCount, deletedCount, conflictedCount := 0, 0, 0
 	for _, item := range response.Items {
-		if item.Index.Status == 200 || item.Index.Status == 201 {
-			createdCount++
-		} else if item.Delete.Status == 200 {
-			deletedCount++
+		if item.Index.ID != "" {
+			log.WithField("id", item.Index.ID).WithField("status", item.Index.Status).Debug("index response")
+			if item.Index.Status == 200 || item.Index.Status == 201 {
+				createdCount++
+			} else if item.Index.Status == 409 {
+				conflictedCount++
+			}
+		} else if item.Delete.ID != "" {
+			log.WithField("id", item.Index.ID).WithField("status", item.Index.Status).Debug("delete response")
+			if item.Delete.Status == 200 {
+				deletedCount++
+			} else if item.Delete.Status == 409 {
+				conflictedCount++
+			}
+		} else {
+			log.Error("unparsed item in response")
 		}
 	}
+	log.WithField("created", createdCount).WithField("deleted", deletedCount).WithField("conflicted", conflictedCount).Debug("indexed batch")
 
 	return createdCount, deletedCount, nil
 }
@@ -161,7 +189,6 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 		batchModified := lastModified
 
 		rows, err := db.Query(contactQuery, lastModified)
-		defer rows.Close()
 
 		// no more rows? return
 		if err == sql.ErrNoRows {
@@ -170,6 +197,7 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 		if err != nil {
 			return 0, 0, err
 		}
+		defer rows.Close()
 
 		for rows.Next() {
 			err = rows.Scan(&orgID, &id, &modifiedOn, &isActive, &contactJSON)
@@ -180,11 +208,13 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 			processedCount++
 
 			if isActive {
+				log.WithField("id", id).WithField("modifiedOn", modifiedOn).WithField("contact", contactJSON).Debug("modified contact")
 				batch.WriteString(fmt.Sprintf(indexCommand, id, modifiedOn.UnixNano(), orgID))
 				batch.WriteString("\n")
 				batch.WriteString(contactJSON)
 				batch.WriteString("\n")
 			} else {
+				log.WithField("id", id).WithField("modifiedOn", modifiedOn).Debug("deleted contact")
 				batch.WriteString(fmt.Sprintf(deleteCommand, id, modifiedOn.UnixNano(), orgID))
 				batch.WriteString("\n")
 			}
@@ -506,10 +536,12 @@ type queryResponse struct {
 type indexResponse struct {
 	Items []struct {
 		Index struct {
-			Status int `json:"status"`
+			ID     string `json:"_id"`
+			Status int    `json:"status"`
 		} `json:"index"`
 		Delete struct {
-			Status int `json:"status"`
+			ID     string `json:"_id"`
+			Status int    `json:"status"`
 		} `json:"delete"`
 	} `json:"items"`
 }

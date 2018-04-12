@@ -113,7 +113,7 @@ func MakeJSONRequest(method string, url string, body string, jsonStruct interfac
 		return resp, err
 	}
 
-	l = log.WithField("body", string(jsonBody)).WithField("status", resp.StatusCode)
+	l = l.WithField("body", string(jsonBody)).WithField("status", resp.StatusCode)
 
 	// error if we got a non-200
 	if resp.StatusCode != http.StatusOK {

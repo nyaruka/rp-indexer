@@ -1,3 +1,7 @@
+v1.0.9
+----------
+ * add logging of physical indexes that are looked up
+
 v1.0.8
 ----------
  * more complete logging of request parameters

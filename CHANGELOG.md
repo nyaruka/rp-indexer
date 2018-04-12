@@ -1,3 +1,7 @@
+v1.0.8
+----------
+ * more complete logging of request parameters
+
 v1.0.7
 ----------
  * add debug log level, more logging of errors

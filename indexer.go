@@ -103,7 +103,7 @@ func MakeJSONRequest(method string, url string, body string, jsonStruct interfac
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 
-	l := log.WithField("url", url).WithField("method", method).WithField("body", body)
+	l := log.WithField("url", url).WithField("method", method).WithField("request", body)
 	if err != nil {
 		l.WithError(err).Error("error making ES request")
 		return resp, err
@@ -116,7 +116,7 @@ func MakeJSONRequest(method string, url string, body string, jsonStruct interfac
 		return resp, err
 	}
 
-	l = l.WithField("body", string(jsonBody)).WithField("status", resp.StatusCode)
+	l = l.WithField("response", string(jsonBody)).WithField("status", resp.StatusCode)
 
 	// error if we got a non-200
 	if resp.StatusCode != http.StatusOK {

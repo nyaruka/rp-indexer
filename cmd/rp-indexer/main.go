@@ -47,22 +47,28 @@ func main() {
 		log.Fatal(err)
 	}
 
-	physicalIndexes := indexer.FindPhysicalIndexes(config.ElasticURL, config.Index)
-	log.WithField("physicalIndexes", physicalIndexes).WithField("index", config.Index).Info("found physical indexes")
-	physicalIndex := ""
-	if len(physicalIndexes) > 0 {
-		physicalIndex = physicalIndexes[0]
-	}
-	oldIndex := physicalIndex
-
 	for {
+		// find our physical index
+		physicalIndexes := indexer.FindPhysicalIndexes(config.ElasticURL, config.Index)
+		log.WithField("physicalIndexes", physicalIndexes).WithField("index", config.Index).Debug("found physical indexes")
+
+		physicalIndex := ""
+		if len(physicalIndexes) > 0 {
+			physicalIndex = physicalIndexes[0]
+		}
+
+		// whether we need to remap our alias after building
+		remapAlias := false
+
 		// doesn't exist or we are rebuilding, create it
 		if physicalIndex == "" || config.Rebuild {
 			physicalIndex, err = indexer.CreateNewIndex(config.ElasticURL, config.Index)
 			if err != nil {
-				log.WithError(err).Fatal("error creating new index")
+				logError(config.Rebuild, err, "error creating new index")
+				continue
 			}
 			log.WithField("index", config.Index).WithField("physicalIndex", physicalIndex).Info("created new physical index")
+			remapAlias = true
 		}
 
 		lastModified, err := indexer.GetLastModified(config.ElasticURL, physicalIndex)
@@ -83,28 +89,21 @@ func main() {
 		log.WithField("added", indexed).WithField("deleted", deleted).WithField("index", physicalIndex).WithField("elapsed", time.Now().Sub(start)).Info("completed indexing")
 
 		// if the index didn't previously exist or we are rebuilding, remap to our alias
-		if oldIndex == "" || config.Rebuild {
+		if remapAlias {
 			err := indexer.MapIndexAlias(config.ElasticURL, config.Index, physicalIndex)
 			if err != nil {
-				logError(config.Rebuild, err, "error mapping alias")
+				logError(config.Rebuild, err, "error remapping alias")
 				continue
 			}
-			oldIndex = physicalIndex
+			remapAlias = false
 		}
 
 		if config.Rebuild {
 			os.Exit(0)
-		} else {
-			time.Sleep(time.Second * 5)
-			physicalIndex = ""
-			physicalIndexes = indexer.FindPhysicalIndexes(config.ElasticURL, config.Index)
-			log.WithField("physicalIndexes", physicalIndexes).WithField("index", config.Index).Debug("found physical indexes")
-			if len(physicalIndex) > 0 {
-				physicalIndex = physicalIndexes[0]
-			} else {
-				oldIndex = ""
-			}
 		}
+
+		// sleep a bit before starting again
+		time.Sleep(time.Second * 5)
 	}
 }
 

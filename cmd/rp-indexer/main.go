@@ -55,16 +55,16 @@ func main() {
 	}
 	oldIndex := physicalIndex
 
-	// doesn't exist or we are rebuilding, create it
-	if physicalIndex == "" || config.Rebuild {
-		physicalIndex, err = indexer.CreateNewIndex(config.ElasticURL, config.Index)
-		if err != nil {
-			log.WithError(err).Fatal("error creating new index")
-		}
-		log.WithField("index", config.Index).WithField("physicalIndex", physicalIndex).Info("created new physical index")
-	}
-
 	for {
+		// doesn't exist or we are rebuilding, create it
+		if physicalIndex == "" || config.Rebuild {
+			physicalIndex, err = indexer.CreateNewIndex(config.ElasticURL, config.Index)
+			if err != nil {
+				log.WithError(err).Fatal("error creating new index")
+			}
+			log.WithField("index", config.Index).WithField("physicalIndex", physicalIndex).Info("created new physical index")
+		}
+
 		lastModified, err := indexer.GetLastModified(config.ElasticURL, physicalIndex)
 		if err != nil {
 			logError(config.Rebuild, err, "error finding last modified")
@@ -72,7 +72,7 @@ func main() {
 		}
 
 		start := time.Now()
-		log.WithField("last_modified", lastModified).Info("indexing contacts newer than last modified")
+		log.WithField("last_modified", lastModified).WithField("index", physicalIndex).Info("indexing contacts newer than last modified")
 
 		// now index our docs
 		indexed, deleted, err := indexer.IndexContacts(db, config.ElasticURL, physicalIndex, lastModified)
@@ -80,7 +80,7 @@ func main() {
 			logError(config.Rebuild, err, "error indexing contacts")
 			continue
 		}
-		log.WithField("added", indexed).WithField("deleted", deleted).WithField("elapsed", time.Now().Sub(start)).Info("completed indexing")
+		log.WithField("added", indexed).WithField("deleted", deleted).WithField("index", physicalIndex).WithField("elapsed", time.Now().Sub(start)).Info("completed indexing")
 
 		// if the index didn't previously exist or we are rebuilding, remap to our alias
 		if oldIndex == "" || config.Rebuild {
@@ -101,6 +101,8 @@ func main() {
 			log.WithField("physicalIndexes", physicalIndexes).WithField("index", config.Index).Debug("found physical indexes")
 			if len(physicalIndex) > 0 {
 				physicalIndex = physicalIndexes[0]
+			} else {
+				oldIndex = ""
 			}
 		}
 	}

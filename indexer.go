@@ -59,6 +59,9 @@ func CreateNewIndex(url string, alias string) (string, error) {
 // GetLastModified queries our index and finds the last modified contact, returning it
 func GetLastModified(url string, index string) (time.Time, error) {
 	lastModified := time.Time{}
+	if index == "" {
+		return lastModified, fmt.Errorf("empty index passed to GetLastModified")
+	}
 
 	// get the newest document on our index
 	queryResponse := queryResponse{}
@@ -176,6 +179,10 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 	batch := strings.Builder{}
 	createdCount, deletedCount := 0, 0
 	processedCount := 0
+
+	if index == "" {
+		return createdCount, deletedCount, fmt.Errorf("empty index passed to IndexContacts")
+	}
 
 	var modifiedOn time.Time
 	var contactJSON string

@@ -1,3 +1,7 @@
+v1.0.10
+----------
+ * more logging, deal with missing physical indexes
+
 v1.0.9
 ----------
  * add logging of physical indexes that are looked up

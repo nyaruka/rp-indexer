@@ -1,3 +1,7 @@
+v1.0.7
+----------
+ * add debug log level, more logging of errors
+
 v1.0.6
 ----------
  * use trigram tokenizer instead of filter to allow for phrase queries on urn paths

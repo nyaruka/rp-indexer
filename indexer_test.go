@@ -12,6 +12,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/olivere/elastic"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,6 +37,8 @@ func setup(t *testing.T) (*sql.DB, *elastic.Client) {
 		_, err = client.DeleteIndex(idx).Do(context.Background())
 		assert.NoError(t, err)
 	}
+
+	logrus.SetLevel(logrus.DebugLevel)
 
 	return db, client
 }
@@ -66,7 +69,10 @@ func TestIndexing(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 
-	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "JOHn"), []int64{5})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "JOHn").Analyzer("standard"), []int64{5})
+
+	// prefix on name matches both john and joanne, but no ajodi
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "JO").Analyzer("standard"), []int64{5, 7})
 	assertQuery(t, client, physicalName, elastic.NewTermQuery("name.keyword", "JOHN DOE"), []int64{5})
 
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("language", "eng"), []int64{1})
@@ -201,10 +207,10 @@ func TestIndexing(t *testing.T) {
 	// map our index over
 	err = MapIndexAlias(elasticURL, indexName, physicalName)
 	assert.NoError(t, err)
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// try a test query to check it worked
-	assertQuery(t, client, indexName, elastic.NewMatchQuery("name", "john"), []int64{5})
+	assertQuery(t, client, indexName, elastic.NewMatchQuery("name", "john").Analyzer("standard"), []int64{5})
 
 	// look up our mapping
 	physical := FindPhysicalIndexes(elasticURL, indexName)
@@ -223,9 +229,9 @@ func TestIndexing(t *testing.T) {
 	err = MapIndexAlias(elasticURL, indexName, newIndex)
 	assert.NoError(t, err)
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
-	assertQuery(t, client, newIndex, elastic.NewMatchQuery("name", "john"), []int64{5})
+	assertQuery(t, client, newIndex, elastic.NewMatchQuery("name", "john").Analyzer("standard"), []int64{5})
 
 	// update our database, removing one contact, updating another
 	dbUpdate, err := ioutil.ReadFile("testdb_update.sql")
@@ -238,10 +244,10 @@ func TestIndexing(t *testing.T) {
 	assert.Equal(t, 1, added)
 	assert.Equal(t, 1, deleted)
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// should only match new john, old john is gone
-	assertQuery(t, client, indexName, elastic.NewMatchQuery("name", "john"), []int64{3})
+	assertQuery(t, client, indexName, elastic.NewMatchQuery("name", "john").Analyzer("standard"), []int64{3})
 
 	// 3 is no longer in our group
 	assertQuery(t, client, indexName, elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1})

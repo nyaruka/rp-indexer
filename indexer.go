@@ -308,7 +308,8 @@ func MapIndexAlias(elasticURL string, alias string, newIndex string) error {
 
 const contactQuery = `
 SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM(
-    SELECT id, org_id, uuid, name, language, is_stopped, is_blocked, is_active, created_on, modified_on,
+	SELECT id, org_id, uuid, name, language, is_stopped, is_blocked, is_active, created_on, modified_on, 
+	EXTRACT(EPOCH FROM modified_on) * 1000000 as modified_on_mu,
     (
         SELECT array_to_json(array_agg(row_to_json(u))) FROM (
             SELECT scheme, path
@@ -366,7 +367,15 @@ const indexSettings = `
 						"lowercase",
 						"trim"
 					]
-				}				
+				},
+				"prefix": {
+                    "type":      "custom",
+                    "tokenizer": "standard",
+                    "filter": [
+                        "lowercase",
+                        "prefix_filter" 
+                    ]
+                }			
 			},
 			"tokenizer": {
 				"location_tokenizer": {
@@ -386,7 +395,14 @@ const indexSettings = `
 					"char_filter": [],
 					"filter": ["lowercase"]
 				}
-			}
+			},
+			"filter": {
+                "prefix_filter": { 
+                    "type":     "edge_ngram",
+                    "min_gram": 1,
+                    "max_gram": 8
+                }
+            }
         }
 	},
 
@@ -478,10 +494,13 @@ const indexSettings = `
 				},
 				"modified_on": {
 					"type": "date"
-				},				
+				},
+				"modified_on_mu": {
+					"type": "long"
+				},		
 				"name": {
 					"type": "text",
-					"analyzer": "simple",
+					"analyzer": "prefix",
 					"fields": {
 						"keyword": {
 							"type": "keyword",
@@ -497,7 +516,7 @@ const indexSettings = `
 `
 
 // gets our last modified contact
-const lastModifiedQuery = `{ "sort": [{ "modified_on": "desc"	}]}`
+const lastModifiedQuery = `{ "sort": [{ "modified_on_mu": "desc" }]}`
 
 // indexes a contact
 const indexCommand = `{ "index": { "_id": %d, "_type": "_doc", "_version": %d, "_version_type": "external", "_routing": %d} }`

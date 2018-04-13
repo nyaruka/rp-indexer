@@ -501,6 +501,7 @@ const indexSettings = `
 				"name": {
 					"type": "text",
 					"analyzer": "prefix",
+					"search_analyzer": "standard",
 					"fields": {
 						"keyword": {
 							"type": "keyword",

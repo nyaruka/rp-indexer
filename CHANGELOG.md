@@ -1,3 +1,8 @@
+v1.0.12
+----------
+ * add modified_on_mu for sorting / index creation
+ * add prefix name for index building 
+
 v1.0.11
 ----------
  * refactor main loop in indexer

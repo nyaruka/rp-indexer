@@ -1,3 +1,7 @@
+v1.0.13
+----------
+ * specify the 'standard' search_analyzer for name so it doesn't need to be specified at query time
+
 v1.0.12
 ----------
  * add modified_on_mu for sorting / index creation

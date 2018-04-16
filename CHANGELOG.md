@@ -1,3 +1,7 @@
+v1.0.14
+----------
+ * Deal with long name searches
+
 v1.0.13
 ----------
  * specify the 'standard' search_analyzer for name so it doesn't need to be specified at query time

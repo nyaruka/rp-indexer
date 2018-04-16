@@ -98,7 +98,7 @@ INSERT INTO contacts_contact(id, is_active, created_by_id, created_on, modified_
 '{ "05bca1cd-e322-4837-9595-86d0d85e5adb": {"text": "9", "decimal": 9 }, "e0eac267-463a-4c00-9732-cab62df07b16": { "text": "2018-04-06T18:37:59+00:00", "datetime": "2018-04-06T18:37:59+00:00"}}'),
 (5,  TRUE, -1, '2015-03-27 07:39:28.955051+00', -1, '2015-03-27 07:39:28.955051+00', 1, FALSE, 'John Doe', FALSE, NULL, '51762bba-01a2-4c4e-b5cd-b182d0405cd4', FALSE, 
 '{ "e0eac267-463a-4c00-9732-cab62df07b16": { "text": "2030-04-06T18:37:59+00:00", "datetime": "2030-04-06T18:37:59+00:00"}}'),
-(6,  TRUE, -1, '2015-10-30 19:42:27.001837+00', -1, '2015-10-30 19:42:27.001837+00', 2, FALSE, 'Ajodi Dane', FALSE, NULL, '3e814add-e614-41f7-8b5d-a07f670a698f', FALSE, 
+(6,  TRUE, -1, '2015-10-30 19:42:27.001837+00', -1, '2015-10-30 19:42:27.001837+00', 2, FALSE, 'Ajodinabiff Dane', FALSE, NULL, '3e814add-e614-41f7-8b5d-a07f670a698f', FALSE, 
 '{ "22d11697-edba-4186-b084-793e3b876379": { "text": "USA > Washington", "state": "USA > Washington"} }'),
 (7,  TRUE, -1, '2017-11-10 21:11:59.890662+00', -1, '2017-11-10 21:11:59.890662+00', 2, FALSE, 'Joanne Stone', FALSE, NULL, '7051dff0-0a27-49d7-af1f-4494239139e6', FALSE, 
 '{ "22d11697-edba-4186-b084-793e3b876379": { "text": "USA > Colorado", "state": "USA > Colorado"} }'),

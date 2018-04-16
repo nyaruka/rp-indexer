@@ -157,6 +157,8 @@ func IndexBatch(elasticURL string, index string, batch string) (int, int, error)
 				createdCount++
 			} else if item.Index.Status == 409 {
 				conflictedCount++
+			} else {
+				log.WithField("id", item.Index.ID).WithField("batch", batch).WithField("result", item.Index.Result).Error("error indexing contact")
 			}
 		} else if item.Delete.ID != "" {
 			log.WithField("id", item.Index.ID).WithField("status", item.Index.Status).Debug("delete response")
@@ -577,6 +579,7 @@ type indexResponse struct {
 		Index struct {
 			ID     string `json:"_id"`
 			Status int    `json:"status"`
+			Result string `json:"result"`
 		} `json:"index"`
 		Delete struct {
 			ID     string `json:"_id"`

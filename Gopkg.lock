@@ -2,16 +2,34 @@
 
 
 [[projects]]
+  name = "github.com/certifi/gocertifi"
+  packages = ["."]
+  revision = "deb3ae2ef2610fde3330947281941c562861188b"
+  version = "2018.01.18"
+
+[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/evalphobia/logrus_sentry"
+  packages = ["."]
+  revision = "57846a82817615f185b10cc40de8dc60c1ca5ae1"
+  version = "v0.4.5"
+
+[[projects]]
   name = "github.com/fatih/structs"
   packages = ["."]
   revision = "a720dfa8df582c51dee1b36feabb906bde1588bd"
   version = "v1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/getsentry/raven-go"
+  packages = ["."]
+  revision = "d1470f50d3a3a38533355a9fab7393e25a3b4226"
 
 [[projects]]
   branch = "master"
@@ -106,6 +124,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f22c81938c510ab432d198dab09353e7b75c0cc719c498fc86f9115f97543d92"
+  inputs-digest = "6f385dbd2b09601ea268378bfb9d683a46e71c875d1dbdff49017b511923e4f6"
   solver-name = "gps-cdcl"
   solver-version = 1

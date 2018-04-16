@@ -375,7 +375,15 @@ const indexSettings = `
                         "lowercase",
                         "prefix_filter" 
                     ]
-                }			
+				},
+				"name_search": {
+					"type": "custom",
+					"tokenizer": "standard",
+					"filter": [
+						"lowercase",
+						"max_length"
+					]
+				}			
 			},
 			"tokenizer": {
 				"location_tokenizer": {
@@ -399,9 +407,13 @@ const indexSettings = `
 			"filter": {
                 "prefix_filter": { 
                     "type":     "edge_ngram",
-                    "min_gram": 1,
+                    "min_gram": 2,
                     "max_gram": 8
-                }
+				},
+				"max_length":{
+					"type": "truncate",
+					"length": 8
+				}
             }
         }
 	},
@@ -501,7 +513,7 @@ const indexSettings = `
 				"name": {
 					"type": "text",
 					"analyzer": "prefix",
-					"search_analyzer": "standard",
+					"search_analyzer": "name_search",
 					"fields": {
 						"keyword": {
 							"type": "keyword",

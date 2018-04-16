@@ -75,6 +75,15 @@ func TestIndexing(t *testing.T) {
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "JO"), []int64{5, 7})
 	assertQuery(t, client, physicalName, elastic.NewTermQuery("name.keyword", "JOHN DOE"), []int64{5})
 
+	// can search on both first and last name
+	boolQuery := elastic.NewBoolQuery().Must(
+		elastic.NewMatchQuery("name", "john"),
+		elastic.NewMatchQuery("name", "doe"))
+	assertQuery(t, client, physicalName, boolQuery, []int64{5})
+
+	// can search on a long name
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "Ajodinabiff"), []int64{6})
+
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("language", "eng"), []int64{1})
 
 	// test contact, not indexed

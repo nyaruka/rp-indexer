@@ -1,3 +1,7 @@
+v1.0.15
+----------
+ * plug in sentry, log errors on unexpected indexing responses
+
 v1.0.14
 ----------
  * Deal with long name searches

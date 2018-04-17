@@ -1,3 +1,7 @@
+v1.0.16
+----------
+ * look a bit behind for updated contacts so we don't run into races
+
 v1.0.15
 ----------
  * plug in sentry, log errors on unexpected indexing responses

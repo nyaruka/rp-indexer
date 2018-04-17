@@ -197,7 +197,7 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 		batchCount := 0
 		batchModified := lastModified
 
-		rows, err := db.Query(contactQuery, lastModified)
+		rows, err := db.Query(contactQuery, lastModified.Add(time.Second*-5))
 
 		// no more rows? return
 		if err == sql.ErrNoRows {

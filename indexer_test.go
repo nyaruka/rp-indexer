@@ -136,10 +136,10 @@ func TestIndexing(t *testing.T) {
 		elastic.NewMatchQuery("fields.text", "rock")))
 	assertQuery(t, client, physicalName, query, []int64{})
 
-	// decimal field range query
+	// number field range query
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "05bca1cd-e322-4837-9595-86d0d85e5adb"),
-		elastic.NewRangeQuery("fields.decimal").Gt(10)))
+		elastic.NewRangeQuery("fields.number").Gt(10)))
 	assertQuery(t, client, physicalName, query, []int64{3})
 
 	// datetime field range query

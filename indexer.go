@@ -437,7 +437,7 @@ const indexSettings = `
 							"ignore_above": 64,
 							"normalizer": "lowercase"
 						},
-						"decimal": {
+						"number": {
 							"type": "scaled_float",
 							"scaling_factor": 10000
 						},

@@ -130,6 +130,13 @@ func TestIndexing(t *testing.T) {
 		elastic.NewMatchQuery("fields.text", "the rock")))
 	assertQuery(t, client, physicalName, query, []int64{1})
 
+	// people with no nickname
+	notQuery := elastic.NewBoolQuery().MustNot(
+		elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
+			elastic.NewMatchQuery("fields.field", "17103bb1-1b48-4b70-92f7-1f6b73bd3488"),
+			elastic.NewExistsQuery("fields.text"))))
+	assertQuery(t, client, physicalName, notQuery, []int64{3, 4, 5, 6, 7, 8, 9, 10})
+
 	// no tokenizing of field text
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "17103bb1-1b48-4b70-92f7-1f6b73bd3488"),

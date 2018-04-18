@@ -1,3 +1,9 @@
+v1.0.17
+----------
+ 
+ * change to number instead of decimal field
+ * add example not exists query
+
 v1.0.16
 ----------
  * look a bit behind for updated contacts so we don't run into races

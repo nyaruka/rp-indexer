@@ -179,7 +179,7 @@ func IndexBatch(elasticURL string, index string, batch string) (int, int, error)
 // IndexContacts queries and indexes all contacts with a lastModified greater than or equal to the passed in time
 func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified time.Time) (int, int, error) {
 	batch := strings.Builder{}
-	createdCount, deletedCount := 0, 0
+	createdCount, deletedCount, processedCount := 0, 0, 0
 
 	if index == "" {
 		return createdCount, deletedCount, fmt.Errorf("empty index passed to IndexContacts")
@@ -215,6 +215,7 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 			}
 
 			queryCount++
+			processedCount++
 			lastModified = modifiedOn
 
 			if isActive {
@@ -261,7 +262,7 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 		}
 
 		elapsed := time.Now().Sub(start)
-		rate := float32(queryCount) / (float32(elapsed) / float32(time.Second))
+		rate := float32(processedCount) / (float32(elapsed) / float32(time.Second))
 		log.WithFields(map[string]interface{}{
 			"rate":    int(rate),
 			"added":   createdCount,

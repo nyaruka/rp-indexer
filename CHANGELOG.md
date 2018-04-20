@@ -1,3 +1,7 @@
+v1.0.19
+----------
+ * better indexing rate calculation
+
 v1.0.18
 ----------
  * fix indexer getting stalled if there are more than 500 contacts with same modified_on

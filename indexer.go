@@ -180,7 +180,6 @@ func IndexBatch(elasticURL string, index string, batch string) (int, int, error)
 func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified time.Time) (int, int, error) {
 	batch := strings.Builder{}
 	createdCount, deletedCount := 0, 0
-	processedCount := 0
 
 	if index == "" {
 		return createdCount, deletedCount, fmt.Errorf("empty index passed to IndexContacts")
@@ -194,10 +193,11 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 	start := time.Now()
 
 	for {
-		batchCount := 0
-		batchModified := lastModified
+		rows, err := db.Query(contactQuery, lastModified)
 
-		rows, err := db.Query(contactQuery, lastModified.Add(time.Second*-5))
+		queryCreated := 0
+		queryCount := 0
+		queryModified := lastModified
 
 		// no more rows? return
 		if err == sql.ErrNoRows {
@@ -214,7 +214,8 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 				return 0, 0, err
 			}
 
-			processedCount++
+			queryCount++
+			lastModified = modifiedOn
 
 			if isActive {
 				log.WithField("id", id).WithField("modifiedOn", modifiedOn).WithField("contact", contactJSON).Debug("modified contact")
@@ -228,20 +229,18 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 				batch.WriteString("\n")
 			}
 
-			// write to elastic search in batches of 500
-			if processedCount%batchSize == 0 {
+			// write to elastic search in batches
+			if queryCount%batchSize == 0 {
 				created, deleted, err := IndexBatch(elasticURL, index, batch.String())
 				if err != nil {
 					return 0, 0, err
 				}
 				batch.Reset()
 
+				queryCreated += created
 				createdCount += created
 				deletedCount += deleted
-				batchCount += created
 			}
-
-			lastModified = modifiedOn
 		}
 
 		if batch.Len() > 0 {
@@ -249,19 +248,20 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 			if err != nil {
 				return 0, 0, err
 			}
+
+			queryCreated += created
 			createdCount += created
 			deletedCount += deleted
-			batchCount += created
 			batch.Reset()
 		}
 
-		// didn't add anything in this batch and our last modified stayed the same, seen it all, break out
-		if batchCount == 0 && lastModified.Equal(batchModified) {
+		// last modified stayed the same and we didn't add anything, seen it all, break out
+		if lastModified.Equal(queryModified) && queryCreated == 0 {
 			break
 		}
 
 		elapsed := time.Now().Sub(start)
-		rate := float32(processedCount) / (float32(elapsed) / float32(time.Second))
+		rate := float32(queryCount) / (float32(elapsed) / float32(time.Second))
 		log.WithFields(map[string]interface{}{
 			"rate":    int(rate),
 			"added":   createdCount,

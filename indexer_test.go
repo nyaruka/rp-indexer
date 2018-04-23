@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -244,9 +245,23 @@ func TestIndexing(t *testing.T) {
 	// remap again
 	err = MapIndexAlias(elasticURL, indexName, newIndex)
 	assert.NoError(t, err)
-
 	time.Sleep(5 * time.Second)
 
+	// old index still around
+	resp, err := http.Get(fmt.Sprintf("%s/%s", elasticURL, physicalName))
+	assert.NoError(t, err)
+	assert.Equal(t, resp.StatusCode, http.StatusOK)
+
+	// cleanup our indexes, will remove our original index
+	err = CleanupIndexes(elasticURL, indexName)
+	assert.NoError(t, err)
+
+	// old physical index should be gone
+	resp, err = http.Get(fmt.Sprintf("%s/%s", elasticURL, physicalName))
+	assert.NoError(t, err)
+	assert.Equal(t, resp.StatusCode, http.StatusNotFound)
+
+	// new index still works
 	assertQuery(t, client, newIndex, elastic.NewMatchQuery("name", "john"), []int64{5})
 
 	// update our database, removing one contact, updating another
@@ -267,4 +282,5 @@ func TestIndexing(t *testing.T) {
 
 	// 3 is no longer in our group
 	assertQuery(t, client, indexName, elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1})
+
 }

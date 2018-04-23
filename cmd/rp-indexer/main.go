@@ -18,6 +18,7 @@ type config struct {
 	Index      string `help:"the alias for our contact index"`
 	Poll       int    `help:"the number of seconds to wait between checking for updated contacts"`
 	Rebuild    bool   `help:"whether to rebuild the index, swapping it when complete, then exiting (default false)"`
+	Cleanup    bool   `help:"whether to remove old indexes after a rebuild"`
 	LogLevel   string `help:"the log level, one of error, warn, info, debug"`
 	SentryDSN  string `help:"the sentry configuration to log errors to, if any"`
 }
@@ -29,6 +30,7 @@ func main() {
 		Index:      "contacts",
 		Poll:       5,
 		Rebuild:    false,
+		Cleanup:    false,
 		LogLevel:   "info",
 	}
 	loader := ezconf.NewLoader(&config, "indexer", "Indexes RapidPro contacts to ElasticSearch", []string{"indexer.toml"})
@@ -111,6 +113,15 @@ func main() {
 				continue
 			}
 			remapAlias = false
+		}
+
+		// cleanup our aliases if appropriate
+		if config.Cleanup {
+			err := indexer.CleanupIndexes(config.ElasticURL, config.Index)
+			if err != nil {
+				logError(config.Rebuild, err, "error cleaning up aliases")
+				continue
+			}
 		}
 
 		if config.Rebuild {

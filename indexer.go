@@ -97,7 +97,7 @@ func FindPhysicalIndexes(url string, alias string) []string {
 	return indexes
 }
 
-// CleanupIndexes remover all indexes that are older than the currently active index
+// CleanupIndexes removes all indexes that are older than the currently active index
 func CleanupIndexes(url string, alias string) error {
 	// find our current indexes
 	currents := FindPhysicalIndexes(url, alias)
@@ -107,7 +107,7 @@ func CleanupIndexes(url string, alias string) error {
 		return nil
 	}
 
-	// find all the current indexer
+	// find all the current indexes
 	healthResponse := healthResponse{}
 	_, err := MakeJSONRequest(http.MethodGet, fmt.Sprintf("%s/%s", url, "_cluster/health?level=indices"), "", &healthResponse)
 	if err != nil {

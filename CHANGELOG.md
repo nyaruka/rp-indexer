@@ -1,3 +1,7 @@
+v1.0.20
+----------
+ * add cleanup option to remove old indexes that are no longer used
+
 v1.0.19
 ----------
  * better indexing rate calculation

@@ -97,6 +97,37 @@ func FindPhysicalIndexes(url string, alias string) []string {
 	return indexes
 }
 
+// CleanupIndexes removes all indexes that are older than the currently active index
+func CleanupIndexes(url string, alias string) error {
+	// find our current indexes
+	currents := FindPhysicalIndexes(url, alias)
+
+	// no current indexes? this a noop
+	if len(currents) == 0 {
+		return nil
+	}
+
+	// find all the current indexes
+	healthResponse := healthResponse{}
+	_, err := MakeJSONRequest(http.MethodGet, fmt.Sprintf("%s/%s", url, "_cluster/health?level=indices"), "", &healthResponse)
+	if err != nil {
+		return err
+	}
+
+	// for each active index, if it starts with our alias but is before our current index, remove it
+	for key := range healthResponse.Indices {
+		if strings.HasPrefix(key, alias) && strings.Compare(key, currents[0]) < 0 {
+			log.WithField("index", key).Info("removing old index")
+			_, err = MakeJSONRequest(http.MethodDelete, fmt.Sprintf("%s/%s", url, key), "", nil)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 // MakeJSONRequest is a utility function to make a JSON request, optionally decoding the response into the passed in struct
 func MakeJSONRequest(method string, url string, body string, jsonStruct interface{}) (*http.Response, error) {
 	req, _ := http.NewRequest(method, url, bytes.NewReader([]byte(body)))
@@ -587,6 +618,13 @@ type indexResponse struct {
 			Status int    `json:"status"`
 		} `json:"delete"`
 	} `json:"items"`
+}
+
+// our response for our index health
+type healthResponse struct {
+	Indices map[string]struct {
+		Status string `json:"status"`
+	} `json:"indices"`
 }
 
 // our response for figuring out the physical index for an alias

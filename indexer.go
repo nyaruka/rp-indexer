@@ -139,6 +139,7 @@ func MakeJSONRequest(method string, url string, body string, jsonStruct interfac
 		l.WithError(err).Error("error making ES request")
 		return resp, err
 	}
+	defer resp.Body.Close()
 
 	// if we have a body, try to decode it
 	jsonBody, err := ioutil.ReadAll(resp.Body)

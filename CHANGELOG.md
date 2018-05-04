@@ -1,3 +1,7 @@
+v1.0.21
+----------
+ * make sure to close response body so we don't run out of handles
+
 v1.0.20
 ----------
  * add cleanup option to remove old indexes that are no longer used

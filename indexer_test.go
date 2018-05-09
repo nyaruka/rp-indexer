@@ -30,7 +30,7 @@ func setup(t *testing.T) (*sql.DB, *elastic.Client) {
 	_, err = db.Exec(string(testDB))
 	assert.NoError(t, err)
 
-	client, err := elastic.NewClient(elastic.SetTraceLog(log.New(os.Stdout, "", log.LstdFlags)))
+	client, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetTraceLog(log.New(os.Stdout, "", log.LstdFlags)))
 	assert.NoError(t, err)
 
 	existing := FindPhysicalIndexes(elasticURL, indexName)
@@ -164,13 +164,13 @@ func TestIndexing(t *testing.T) {
 
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "22d11697-edba-4186-b084-793e3b876379"),
-		elastic.NewMatchQuery("fields.state.keyword", "  washington")))
+		elastic.NewMatchQuery("fields.state_keyword", "  washington")))
 	assertQuery(t, client, physicalName, query, []int64{6})
 
 	// doesn't include country
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "22d11697-edba-4186-b084-793e3b876379"),
-		elastic.NewMatchQuery("fields.state.keyword", "usa")))
+		elastic.NewMatchQuery("fields.state_keyword", "usa")))
 	assertQuery(t, client, physicalName, query, []int64{})
 
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
@@ -192,7 +192,7 @@ func TestIndexing(t *testing.T) {
 
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "fcab2439-861c-4832-aa54-0c97f38f24ab"),
-		elastic.NewMatchQuery("fields.district.keyword", "King County")))
+		elastic.NewMatchQuery("fields.district_keyword", "King County")))
 	assertQuery(t, client, physicalName, query, []int64{8})
 
 	// ward query
@@ -203,13 +203,13 @@ func TestIndexing(t *testing.T) {
 
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "a551ade4-e5a0-4d83-b185-53b515ad2f2a"),
-		elastic.NewMatchQuery("fields.ward.keyword", "central district")))
+		elastic.NewMatchQuery("fields.ward_keyword", "central district")))
 	assertQuery(t, client, physicalName, query, []int64{9})
 
 	// no substring though on keyword
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "a551ade4-e5a0-4d83-b185-53b515ad2f2a"),
-		elastic.NewMatchQuery("fields.ward.keyword", "district")))
+		elastic.NewMatchQuery("fields.ward_keyword", "district")))
 	assertQuery(t, client, physicalName, query, []int64{})
 
 	// group query

@@ -1,3 +1,7 @@
+v1.0.22
+----------
+ * Update location index spec so we can sort in location fields
+
 v1.0.21
 ----------
  * make sure to close response body so we don't run out of handles

@@ -342,33 +342,65 @@ func MapIndexAlias(elasticURL string, alias string, newIndex string) error {
 }
 
 const contactQuery = `
-SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM(
-	SELECT id, org_id, uuid, name, language, is_stopped, is_blocked, is_active, created_on, modified_on, 
-	EXTRACT(EPOCH FROM modified_on) * 1000000 as modified_on_mu,
-    (
-        SELECT array_to_json(array_agg(row_to_json(u))) FROM (
+SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
+  SELECT
+   id, org_id, uuid, name, language, is_stopped, is_blocked, is_active, created_on, modified_on,
+   EXTRACT(EPOCH FROM modified_on) * 1000000 as modified_on_mu,
+   (
+     SELECT array_to_json(array_agg(row_to_json(u)))
+     FROM (
             SELECT scheme, path
             FROM contacts_contacturn
-            WHERE contact_id=contacts_contact.id
-        ) u
-    ) as urns,
-    (
-        SELECT jsonb_agg(f.value) FROM (
-            SELECT value||jsonb_build_object('field', key) as value from jsonb_each(contacts_contact.fields)
-        ) as f
-	) as fields,
-	(
-		SELECT array_to_json(array_agg(g.uuid)) FROM (
-			SELECT contacts_contactgroup.uuid
-			FROM contacts_contactgroup_contacts, contacts_contactgroup
-			WHERE contact_id=contacts_contact.id AND contacts_contactgroup_contacts.contactgroup_id = contacts_contactgroup.id
-		) g
-	) as groups
-    FROM contacts_contact
-	WHERE is_test = FALSE AND modified_on >= $1
-	ORDER BY modified_on ASC
-	LIMIT 10000
-) t
+            WHERE contact_id = contacts_contact.id
+          ) u
+   ) as urns,
+   (
+     SELECT jsonb_agg(f.value)
+     FROM (
+            select case
+                   when value ? 'ward'
+                     then jsonb_build_object(
+                     	'ward_keyword', (regexp_matches(value ->> 'ward', '(.* > )?([^>]+)'))[2]
+                     )
+                   else '{}' :: jsonb
+                   end || district_value.value as value
+            FROM (
+                   select case
+                          when value ? 'district'
+                            then jsonb_build_object(
+                            	'district_keyword', (regexp_matches(value ->> 'district', '(.* > )?([^>]+)'))[2]
+                            )
+                          else '{}' :: jsonb
+                          end || state_value.value as value
+                   FROM (
+  
+                          select case
+                                 when value ? 'state'
+                                   then jsonb_build_object(
+                                   		'state_keyword', (regexp_matches(value ->> 'state', '(.* > )?([^>]+)'))[2]
+                                   	)
+                                 else '{}' :: jsonb
+                                 end ||
+                                 jsonb_build_object('field', key) || value as value
+                          from jsonb_each(contacts_contact.fields)
+                        ) state_value
+                 ) as district_value
+          ) as f
+   ) as fields,
+   (
+     SELECT array_to_json(array_agg(g.uuid))
+     FROM (
+            SELECT contacts_contactgroup.uuid
+            FROM contacts_contactgroup_contacts, contacts_contactgroup
+            WHERE contact_id = contacts_contact.id AND
+                  contacts_contactgroup_contacts.contactgroup_id = contacts_contactgroup.id
+          ) g
+   ) as groups
+  FROM contacts_contact
+  WHERE is_test = FALSE AND modified_on >= $1
+  ORDER BY modified_on ASC
+  LIMIT 10000
+) t;
 `
 
 // settings and mappings for our index
@@ -394,13 +426,6 @@ const indexSettings = `
 					"filter": [
 						"lowercase",
 						"word_delimiter"
-					]
-				},
-				"locations_keyword": {
-					"tokenizer": "location_tokenizer",
-					"filter": [
-						"lowercase",
-						"trim"
 					]
 				},
 				"prefix": {
@@ -436,7 +461,7 @@ const indexSettings = `
 				"lowercase": {
 					"type": "custom",
 					"char_filter": [],
-					"filter": ["lowercase"]
+					"filter": ["lowercase", "trim"]
 				}
 			},
 			"filter": {
@@ -479,34 +504,31 @@ const indexSettings = `
 						},
 						"state": {
 							"type": "text",
-							"analyzer": "locations",
-							"fields": {
-								"keyword": {
-									"type": "text",
-									"analyzer": "locations_keyword"
-								}
-							}							
+							"analyzer": "locations"
 						},
+                        "state_keyword": {
+							"type": "keyword",
+							"normalizer": "lowercase",
+							"ignore_above": 64
+                        },
 						"district": {
 							"type": "text",
-							"analyzer": "locations",
-							"fields": {
-								"keyword": {
-									"type": "text",
-									"analyzer": "locations_keyword"
-								}
-							}							
+							"analyzer": "locations"
 						},
+						"district_keyword": {
+							"type": "keyword",
+							"normalizer": "lowercase",
+							"ignore_above": 64
+                        },
 						"ward": {
 							"type": "text",
-							"analyzer": "locations",
-							"fields": {
-								"keyword": {
-									"type": "text",
-									"analyzer": "locations_keyword"
-								}
-							}
-						}
+							"analyzer": "locations"
+						},
+						"ward_keyword": {
+							"type": "keyword",
+							"normalizer": "lowercase",
+							"ignore_above": 64
+                        }
 					}
 				},
 				"urns": {

@@ -95,6 +95,9 @@ func TestIndexing(t *testing.T) {
 
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("org_id", "1"), []int64{1, 3, 4, 5})
 
+	// created_on range query
+	assertQuery(t, client, physicalName, elastic.NewRangeQuery("created_on").Gt("2017-01-01"), []int64{1, 7, 9})
+
 	// urn query
 	query := elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("urns.scheme", "facebook"),

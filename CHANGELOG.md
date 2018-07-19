@@ -1,3 +1,7 @@
+v1.0.23
+----------
+ * Add created_on to the mapping
+
 v1.0.22
 ----------
  * Update location index spec so we can sort in location fields

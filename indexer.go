@@ -564,6 +564,9 @@ const indexSettings = `
 				"modified_on": {
 					"type": "date"
 				},
+				"created_on": {
+					"type": "date"
+				},
 				"modified_on_mu": {
 					"type": "long"
 				},		

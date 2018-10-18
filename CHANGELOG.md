@@ -1,3 +1,7 @@
+v1.0.24
+----------
+ * increase batch size to 500k
+
 v1.0.23
 ----------
  * Add created_on to the mapping

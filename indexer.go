@@ -357,34 +357,34 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
    (
      SELECT jsonb_agg(f.value)
      FROM (
-            select case
-                   when value ? 'ward'
-                     then jsonb_build_object(
-                     	'ward_keyword', (regexp_matches(value ->> 'ward', '(.* > )?([^>]+)'))[2]
-                     )
-                   else '{}' :: jsonb
-                   end || district_value.value as value
-            FROM (
-                   select case
-                          when value ? 'district'
-                            then jsonb_build_object(
-                            	'district_keyword', (regexp_matches(value ->> 'district', '(.* > )?([^>]+)'))[2]
-                            )
-                          else '{}' :: jsonb
-                          end || state_value.value as value
-                   FROM (
-  
-                          select case
-                                 when value ? 'state'
-                                   then jsonb_build_object(
-                                   		'state_keyword', (regexp_matches(value ->> 'state', '(.* > )?([^>]+)'))[2]
-                                   	)
-                                 else '{}' :: jsonb
-                                 end ||
-                                 jsonb_build_object('field', key) || value as value
-                          from jsonb_each(contacts_contact.fields)
-                        ) state_value
-                 ) as district_value
+                       select case
+                    when value ? 'ward'
+                      then jsonb_build_object(
+                        'ward_keyword', trim(substring(value ->> 'ward' from  '(?!.* > )([\w ]+)'))
+                      )
+                    else '{}' :: jsonb
+                    end || district_value.value as value
+           FROM (
+                  select case
+                           when value ? 'district'
+                             then jsonb_build_object(
+                               'district_keyword', trim(substring(value ->> 'district' from  '(?!.* > )([\w ]+)'))
+                             )
+                           else '{}' :: jsonb
+                           end || state_value.value as value
+                  FROM (
+
+                         select case
+                                  when value ? 'state'
+                                    then jsonb_build_object(
+                                      'state_keyword', trim(substring(value ->> 'state' from  '(?!.* > )([\w ]+)'))
+                                    )
+                                  else '{}' :: jsonb
+                                  end ||
+                                jsonb_build_object('field', key) || value as value
+                         from jsonb_each(contacts_contact.fields)
+                       ) state_value
+                ) as district_value
           ) as f
    ) as fields,
    (

@@ -103,9 +103,9 @@ INSERT INTO contacts_contact(id, is_active, created_by_id, created_on, modified_
 (7,  TRUE, -1, '2017-11-10 21:11:59.890662+00', -1, '2017-11-10 21:11:59.890662+00', 2, FALSE, 'Joanne Stone', FALSE, NULL, '7051dff0-0a27-49d7-af1f-4494239139e6', FALSE, 
 '{ "22d11697-edba-4186-b084-793e3b876379": { "text": "USA > Colorado", "state": "USA > Colorado"} }'),
 (8,  TRUE, -1, '2015-03-27 13:39:43.995812+00', -1, '2015-03-27 13:39:43.995812+00', 2, FALSE, NULL, FALSE, NULL, 'b46f6e18-95b4-4984-9926-dded047f4eb3', FALSE, 
-'{ "fcab2439-861c-4832-aa54-0c97f38f24ab": { "text": "USA > Washington > King County", "district": "USA > Washington > King County"} }'),
+'{ "fcab2439-861c-4832-aa54-0c97f38f24ab": { "text": "USA > Washington > King Côunty", "district": "USA > Washington > King Côunty"} }'),
 (9,  TRUE, -1, '2017-11-10 21:11:59.890662+00', -1, '2017-11-10 21:11:59.890662+00', 2, FALSE, NULL, FALSE, NULL, '9195c8b7-6138-4d84-ac56-5192cc3d8ceb', FALSE, 
-'{ "a551ade4-e5a0-4d83-b185-53b515ad2f2a": { "text": "USA > Washington > King County > Central District", "ward": "USA > Washington > King County > Central District"} }'),
+'{ "a551ade4-e5a0-4d83-b185-53b515ad2f2a": { "text": "USA > Washington > King Côunty > Central District", "ward": "USA > Washington > King Côunty > Central District"} }'),
 (10, TRUE, -1, '2016-08-22 14:20:05.690311+00', -1, '2016-08-22 14:20:05.690311+00', 2, FALSE, NULL, FALSE, NULL, '2b8bd28d-43e0-4c34-a4bb-0f10b11fdb8a', FALSE, 
 '{ "fcab2439-861c-4832-aa54-0c97f38f24ab": { "text": "USA > Colorado > King", "district": "USA > Colorado > King"} }');
 

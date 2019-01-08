@@ -1,3 +1,7 @@
+v1.0.25
+----------
+ * Changes to support both PG 10 and 9.6
+
 v1.0.24
 ----------
  * increase batch size to 500k

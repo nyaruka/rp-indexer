@@ -1,3 +1,7 @@
+v1.0.26
+----------
+ * move to go module, dont ignore any keywords
+
 v1.0.25
 ----------
  * Changes to support both PG 10 and 9.6

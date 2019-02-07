@@ -474,7 +474,7 @@ const indexSettings = `
 					"type": "truncate",
 					"length": 8
 				}
-            }
+	        }
         }
 	},
 
@@ -492,7 +492,6 @@ const indexSettings = `
 						},
 						"text": {
 							"type": "keyword",
-							"ignore_above": 64,
 							"normalizer": "lowercase"
 						},
 						"number": {
@@ -508,8 +507,7 @@ const indexSettings = `
 						},
                         "state_keyword": {
 							"type": "keyword",
-							"normalizer": "lowercase",
-							"ignore_above": 64
+							"normalizer": "lowercase"
                         },
 						"district": {
 							"type": "text",
@@ -517,8 +515,7 @@ const indexSettings = `
 						},
 						"district_keyword": {
 							"type": "keyword",
-							"normalizer": "lowercase",
-							"ignore_above": 64
+							"normalizer": "lowercase"
                         },
 						"ward": {
 							"type": "text",
@@ -526,8 +523,7 @@ const indexSettings = `
 						},
 						"ward_keyword": {
 							"type": "keyword",
-							"normalizer": "lowercase",
-							"ignore_above": 64
+							"normalizer": "lowercase"
                         }
 					}
 				},
@@ -540,7 +536,6 @@ const indexSettings = `
 							"fields": {
 								"keyword": {
 									"type": "keyword",
-									"ignore_above": 64,
 									"normalizer": "lowercase"
 								}
 							}
@@ -577,7 +572,6 @@ const indexSettings = `
 					"fields": {
 						"keyword": {
 							"type": "keyword",
-							"ignore_above": 64,
 							"normalizer": "lowercase"
 						}
 					}

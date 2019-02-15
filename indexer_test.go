@@ -70,45 +70,45 @@ func TestIndexing(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 
-	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "JOHn"), []int64{5})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "JOHn"), []int64{4})
 
 	// prefix on name matches both john and joanne, but no ajodi
-	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "JO"), []int64{5, 7})
-	assertQuery(t, client, physicalName, elastic.NewTermQuery("name.keyword", "JOHN DOE"), []int64{5})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "JO"), []int64{4, 6})
+	assertQuery(t, client, physicalName, elastic.NewTermQuery("name.keyword", "JOHN DOE"), []int64{4})
 
 	// can search on both first and last name
 	boolQuery := elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("name", "john"),
 		elastic.NewMatchQuery("name", "doe"))
-	assertQuery(t, client, physicalName, boolQuery, []int64{5})
+	assertQuery(t, client, physicalName, boolQuery, []int64{4})
 
 	// can search on a long name
-	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "Ajodinabiff"), []int64{6})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("name", "Ajodinabiff"), []int64{5})
 
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("language", "eng"), []int64{1})
 
 	// test contact, not indexed
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("language", "fra"), []int64{})
 
-	assertQuery(t, client, physicalName, elastic.NewMatchQuery("is_blocked", "true"), []int64{4})
-	assertQuery(t, client, physicalName, elastic.NewMatchQuery("is_stopped", "true"), []int64{3})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("is_blocked", "true"), []int64{3})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("is_stopped", "true"), []int64{2})
 
-	assertQuery(t, client, physicalName, elastic.NewMatchQuery("org_id", "1"), []int64{1, 3, 4, 5})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("org_id", "1"), []int64{1, 2, 3, 4})
 
 	// created_on range query
-	assertQuery(t, client, physicalName, elastic.NewRangeQuery("created_on").Gt("2017-01-01"), []int64{1, 7, 9})
+	assertQuery(t, client, physicalName, elastic.NewRangeQuery("created_on").Gt("2017-01-01"), []int64{1, 6, 8})
 
 	// urn query
 	query := elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("urns.scheme", "facebook"),
 		elastic.NewMatchQuery("urns.path.keyword", "1000001")))
-	assertQuery(t, client, physicalName, query, []int64{9})
+	assertQuery(t, client, physicalName, query, []int64{8})
 
 	// urn substring query
 	query = elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("urns.scheme", "tel"),
 		elastic.NewMatchPhraseQuery("urns.path", "779")))
-	assertQuery(t, client, physicalName, query, []int64{1, 3, 4, 7})
+	assertQuery(t, client, physicalName, query, []int64{1, 2, 3, 6})
 
 	// urn substring query with more characters (77911)
 	query = elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(
@@ -120,7 +120,7 @@ func TestIndexing(t *testing.T) {
 	query = elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("urns.scheme", "tel"),
 		elastic.NewMatchPhraseQuery("urns.path", "600055")))
-	assertQuery(t, client, physicalName, query, []int64{6})
+	assertQuery(t, client, physicalName, query, []int64{5})
 
 	// match a contact with multiple tel urns
 	query = elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(
@@ -139,7 +139,7 @@ func TestIndexing(t *testing.T) {
 		elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 			elastic.NewMatchQuery("fields.field", "17103bb1-1b48-4b70-92f7-1f6b73bd3488"),
 			elastic.NewExistsQuery("fields.text"))))
-	assertQuery(t, client, physicalName, notQuery, []int64{3, 4, 5, 6, 7, 8, 9, 10})
+	assertQuery(t, client, physicalName, notQuery, []int64{2, 3, 4, 5, 6, 7, 8, 9})
 
 	// no tokenizing of field text
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
@@ -151,24 +151,24 @@ func TestIndexing(t *testing.T) {
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "05bca1cd-e322-4837-9595-86d0d85e5adb"),
 		elastic.NewRangeQuery("fields.number").Gt(10)))
-	assertQuery(t, client, physicalName, query, []int64{3})
+	assertQuery(t, client, physicalName, query, []int64{2})
 
 	// datetime field range query
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "e0eac267-463a-4c00-9732-cab62df07b16"),
 		elastic.NewRangeQuery("fields.datetime").Lt(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))))
-	assertQuery(t, client, physicalName, query, []int64{4})
+	assertQuery(t, client, physicalName, query, []int64{3})
 
 	// state query
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "22d11697-edba-4186-b084-793e3b876379"),
 		elastic.NewMatchPhraseQuery("fields.state", "washington")))
-	assertQuery(t, client, physicalName, query, []int64{6})
+	assertQuery(t, client, physicalName, query, []int64{5})
 
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "22d11697-edba-4186-b084-793e3b876379"),
 		elastic.NewMatchQuery("fields.state_keyword", "  washington")))
-	assertQuery(t, client, physicalName, query, []int64{6})
+	assertQuery(t, client, physicalName, query, []int64{5})
 
 	// doesn't include country
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
@@ -185,29 +185,29 @@ func TestIndexing(t *testing.T) {
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "fcab2439-861c-4832-aa54-0c97f38f24ab"),
 		elastic.NewMatchPhraseQuery("fields.district", "king")))
-	assertQuery(t, client, physicalName, query, []int64{8, 10})
+	assertQuery(t, client, physicalName, query, []int64{7, 9})
 
 	// phrase matches all
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "fcab2439-861c-4832-aa54-0c97f38f24ab"),
 		elastic.NewMatchPhraseQuery("fields.district", "King Côunty")))
-	assertQuery(t, client, physicalName, query, []int64{8})
+	assertQuery(t, client, physicalName, query, []int64{7})
 
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "fcab2439-861c-4832-aa54-0c97f38f24ab"),
 		elastic.NewMatchQuery("fields.district_keyword", "King Côunty")))
-	assertQuery(t, client, physicalName, query, []int64{8})
+	assertQuery(t, client, physicalName, query, []int64{7})
 
 	// ward query
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "a551ade4-e5a0-4d83-b185-53b515ad2f2a"),
 		elastic.NewMatchPhraseQuery("fields.ward", "district")))
-	assertQuery(t, client, physicalName, query, []int64{9})
+	assertQuery(t, client, physicalName, query, []int64{8})
 
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "a551ade4-e5a0-4d83-b185-53b515ad2f2a"),
 		elastic.NewMatchQuery("fields.ward_keyword", "central district")))
-	assertQuery(t, client, physicalName, query, []int64{9})
+	assertQuery(t, client, physicalName, query, []int64{8})
 
 	// no substring though on keyword
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
@@ -217,7 +217,7 @@ func TestIndexing(t *testing.T) {
 
 	// group query
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("groups", "4ea0f313-2f62-4e57-bdf0-232b5191dd57"), []int64{1})
-	assertQuery(t, client, physicalName, elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1, 3})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1, 2})
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("groups", "4c016340-468d-4675-a974-15cb7a45a5ab"), []int64{})
 
 	lastModified, err := GetLastModified(elasticURL, physicalName)
@@ -230,7 +230,7 @@ func TestIndexing(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	// try a test query to check it worked
-	assertQuery(t, client, indexName, elastic.NewMatchQuery("name", "john"), []int64{5})
+	assertQuery(t, client, indexName, elastic.NewMatchQuery("name", "john"), []int64{4})
 
 	// look up our mapping
 	physical := FindPhysicalIndexes(elasticURL, indexName)
@@ -265,7 +265,7 @@ func TestIndexing(t *testing.T) {
 	assert.Equal(t, resp.StatusCode, http.StatusNotFound)
 
 	// new index still works
-	assertQuery(t, client, newIndex, elastic.NewMatchQuery("name", "john"), []int64{5})
+	assertQuery(t, client, newIndex, elastic.NewMatchQuery("name", "john"), []int64{4})
 
 	// update our database, removing one contact, updating another
 	dbUpdate, err := ioutil.ReadFile("testdb_update.sql")
@@ -281,7 +281,7 @@ func TestIndexing(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	// should only match new john, old john is gone
-	assertQuery(t, client, indexName, elastic.NewMatchQuery("name", "john"), []int64{3})
+	assertQuery(t, client, indexName, elastic.NewMatchQuery("name", "john"), []int64{2})
 
 	// 3 is no longer in our group
 	assertQuery(t, client, indexName, elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1})

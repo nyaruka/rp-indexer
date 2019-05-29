@@ -47,3 +47,11 @@ Environment variables:
                                 INDEXER_POLL - int
                              INDEXER_REBUILD - bool
 ```
+
+## Development
+
+To generate a local build for a linux amd64 architecture, use the following:
+
+```shell
+GOOS=linux GOARCH=amd64 go build github.com/nyaruka/rp-indexer/cmd/rp-indexer
+```

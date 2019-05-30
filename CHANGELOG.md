@@ -1,5 +1,9 @@
 v1.0.27
 ----------
+ * Reduce shard count from 5 -> 2
+
+v1.0.27
+----------
  * update ES shards to match current ES best-practice guidance
 
 v1.0.26

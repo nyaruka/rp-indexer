@@ -408,9 +408,9 @@ const indexSettings = `
 {
 	"settings": {
 		"index": {
-			"number_of_shards": 5,
+			"number_of_shards": 2,
 			"number_of_replicas": 1,
-			"routing_partition_size": 3
+			"routing_partition_size": 1
 		},
 		"analysis": {
             "analyzer": {
@@ -433,7 +433,7 @@ const indexSettings = `
                     "tokenizer": "standard",
                     "filter": [
                         "lowercase",
-                        "prefix_filter" 
+                        "prefix_filter"
                     ]
 				},
 				"name_search": {
@@ -443,7 +443,7 @@ const indexSettings = `
 						"lowercase",
 						"max_length"
 					]
-				}			
+				}
 			},
 			"tokenizer": {
 				"location_tokenizer": {
@@ -465,7 +465,7 @@ const indexSettings = `
 				}
 			},
 			"filter": {
-                "prefix_filter": { 
+                "prefix_filter": {
                     "type":     "edge_ngram",
                     "min_gram": 2,
                     "max_gram": 8
@@ -564,7 +564,7 @@ const indexSettings = `
 				},
 				"modified_on_mu": {
 					"type": "long"
-				},		
+				},
 				"name": {
 					"type": "text",
 					"analyzer": "prefix",

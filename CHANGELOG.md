@@ -1,3 +1,7 @@
+v2.0.0
+----------
+ * Ignore value of is_test on contacts
+
 v1.0.27
 ----------
  * update ES shards to match current ES best-practice guidance

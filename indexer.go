@@ -357,34 +357,34 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
    (
      SELECT jsonb_agg(f.value)
      FROM (
-            select case
-                   when value ? 'ward'
-                     then jsonb_build_object(
-                     	'ward_keyword', (regexp_matches(value ->> 'ward', '(.* > )?([^>]+)'))[2]
-                     )
-                   else '{}' :: jsonb
-                   end || district_value.value as value
-            FROM (
-                   select case
-                          when value ? 'district'
-                            then jsonb_build_object(
-                            	'district_keyword', (regexp_matches(value ->> 'district', '(.* > )?([^>]+)'))[2]
-                            )
-                          else '{}' :: jsonb
-                          end || state_value.value as value
-                   FROM (
-  
-                          select case
-                                 when value ? 'state'
-                                   then jsonb_build_object(
-                                   		'state_keyword', (regexp_matches(value ->> 'state', '(.* > )?([^>]+)'))[2]
-                                   	)
-                                 else '{}' :: jsonb
-                                 end ||
-                                 jsonb_build_object('field', key) || value as value
-                          from jsonb_each(contacts_contact.fields)
-                        ) state_value
-                 ) as district_value
+                       select case
+                    when value ? 'ward'
+                      then jsonb_build_object(
+                        'ward_keyword', trim(substring(value ->> 'ward' from  '(?!.* > )([\w ]+)'))
+                      )
+                    else '{}' :: jsonb
+                    end || district_value.value as value
+           FROM (
+                  select case
+                           when value ? 'district'
+                             then jsonb_build_object(
+                               'district_keyword', trim(substring(value ->> 'district' from  '(?!.* > )([\w ]+)'))
+                             )
+                           else '{}' :: jsonb
+                           end || state_value.value as value
+                  FROM (
+
+                         select case
+                                  when value ? 'state'
+                                    then jsonb_build_object(
+                                      'state_keyword', trim(substring(value ->> 'state' from  '(?!.* > )([\w ]+)'))
+                                    )
+                                  else '{}' :: jsonb
+                                  end ||
+                                jsonb_build_object('field', key) || value as value
+                         from jsonb_each(contacts_contact.fields)
+                       ) state_value
+                ) as district_value
           ) as f
    ) as fields,
    (
@@ -397,7 +397,7 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
           ) g
    ) as groups
   FROM contacts_contact
-  WHERE is_test = FALSE AND modified_on >= $1
+  WHERE modified_on >= $1
   ORDER BY modified_on ASC
   LIMIT 500000
 ) t;
@@ -408,9 +408,9 @@ const indexSettings = `
 {
 	"settings": {
 		"index": {
-			"number_of_shards": 5,
+			"number_of_shards": 2,
 			"number_of_replicas": 1,
-			"routing_partition_size": 3
+			"routing_partition_size": 1
 		},
 		"analysis": {
             "analyzer": {
@@ -433,7 +433,7 @@ const indexSettings = `
                     "tokenizer": "standard",
                     "filter": [
                         "lowercase",
-                        "prefix_filter" 
+                        "prefix_filter"
                     ]
 				},
 				"name_search": {
@@ -443,7 +443,7 @@ const indexSettings = `
 						"lowercase",
 						"max_length"
 					]
-				}			
+				}
 			},
 			"tokenizer": {
 				"location_tokenizer": {
@@ -465,7 +465,7 @@ const indexSettings = `
 				}
 			},
 			"filter": {
-                "prefix_filter": { 
+                "prefix_filter": {
                     "type":     "edge_ngram",
                     "min_gram": 2,
                     "max_gram": 8
@@ -474,7 +474,7 @@ const indexSettings = `
 					"type": "truncate",
 					"length": 8
 				}
-            }
+	        }
         }
 	},
 
@@ -492,7 +492,6 @@ const indexSettings = `
 						},
 						"text": {
 							"type": "keyword",
-							"ignore_above": 64,
 							"normalizer": "lowercase"
 						},
 						"number": {
@@ -508,8 +507,7 @@ const indexSettings = `
 						},
                         "state_keyword": {
 							"type": "keyword",
-							"normalizer": "lowercase",
-							"ignore_above": 64
+							"normalizer": "lowercase"
                         },
 						"district": {
 							"type": "text",
@@ -517,8 +515,7 @@ const indexSettings = `
 						},
 						"district_keyword": {
 							"type": "keyword",
-							"normalizer": "lowercase",
-							"ignore_above": 64
+							"normalizer": "lowercase"
                         },
 						"ward": {
 							"type": "text",
@@ -526,8 +523,7 @@ const indexSettings = `
 						},
 						"ward_keyword": {
 							"type": "keyword",
-							"normalizer": "lowercase",
-							"ignore_above": 64
+							"normalizer": "lowercase"
                         }
 					}
 				},
@@ -540,7 +536,6 @@ const indexSettings = `
 							"fields": {
 								"keyword": {
 									"type": "keyword",
-									"ignore_above": 64,
 									"normalizer": "lowercase"
 								}
 							}
@@ -569,7 +564,7 @@ const indexSettings = `
 				},
 				"modified_on_mu": {
 					"type": "long"
-				},		
+				},
 				"name": {
 					"type": "text",
 					"analyzer": "prefix",
@@ -577,7 +572,6 @@ const indexSettings = `
 					"fields": {
 						"keyword": {
 							"type": "keyword",
-							"ignore_above": 64,
 							"normalizer": "lowercase"
 						}
 					}

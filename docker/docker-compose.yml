@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+  indexer:
+    image: ${DOCKER_IMAGE_NAME:-ilhasoft/indexer}:${DOCKER_IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - 8080:8000

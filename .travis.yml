@@ -1,11 +1,21 @@
 language: go
 
-addons:
-  postgresql: '10'
-  apt:
-    packages:
-      - postgresql-10
-      - postgresql-client-10
+matrix:
+  include:
+    - name: "Postgres 11"
+      addons:
+        postgresql: "11"
+        apt:
+          packages:
+            - postgresql-11
+            - postgresql-client-11
+    - name: "Postgres 10"
+      addons:
+        postgresql: "10"
+        apt:
+          packages:
+            - postgresql-10
+            - postgresql-client-10
 
 go:
 - "1.11"

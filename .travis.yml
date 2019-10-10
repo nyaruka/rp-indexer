@@ -3,15 +3,6 @@ language: go
 
 matrix:
   include:
-    - name: "Postgres 12"
-      env:
-        - PGDB=12
-      addons:
-        postgresql: "12"
-        apt:
-          packages:
-            - postgresql-12
-            - postgresql-client-12
     - name: "Postgres 11"
       env:
         - PGDB=11

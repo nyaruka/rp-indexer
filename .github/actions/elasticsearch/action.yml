@@ -1,0 +1,14 @@
+name: 'Setup Elasticsearch'
+author: 'Nyaruka'
+branding:
+  icon: 'database'
+  color: 'blue'
+inputs:
+  # See https://hub.docker.com/_/elasticsearch for supported versions
+  elastic version:
+    description: 'Version of Elasticsearch to use'
+    required: false
+    default: '7.4.2'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'

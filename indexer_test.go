@@ -24,7 +24,7 @@ func setup(t *testing.T) (*sql.DB, *elastic.Client) {
 	testDB, err := ioutil.ReadFile("testdb.sql")
 	assert.NoError(t, err)
 
-	db, err := sql.Open("postgres", "postgres://localhost/elastic_test?sslmode=disable")
+	db, err := sql.Open("postgres", "postgres://temba:temba@localhost:5432/elastic_test?sslmode=disable")
 	assert.NoError(t, err)
 
 	_, err = db.Exec(string(testDB))

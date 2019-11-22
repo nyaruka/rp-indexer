@@ -11,7 +11,7 @@ Basic:
 steps:
 - uses: nyaruka/elasticsearch@v1
   with:
-    elastic version: '11'  # See https://hub.docker.com/_/elasticsearch for available versions
+    elastic version: '6.8.5'  # See https://hub.docker.com/_/elasticsearch for available versions
 ```
 
 # License

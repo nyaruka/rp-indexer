@@ -18,3 +18,5 @@ fabconfig.pyc
 .glide/
 
 *~
+
+.DS_Store

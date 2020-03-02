@@ -1,4 +1,4 @@
-# RapidPro Indexer [![Build Status](https://github.com/nyaruka/rp-indexer/workflows/CI/badge.svg)](https://github.com/nyaruka/rp-indexer/actions?query=workflow%3ACI) [![codecov](https://codecov.io/gh/nyaruka/rp-indexer/branch/master/graph/badge.svg)](https://codecov.io/gh/nyaruka/rp-indexer) [![Go Report Card](https://goreportcard.com/badge/github.com/nyaruka/rp-indexer)](https://goreportcard.com/report/github.com/nyaruka/rp-indexer) 
+# RapidPro Indexer [![Build Status](https://github.com/nyaruka/rp-indexer/workflows/CI/badge.svg)](https://github.com/nyaruka/rp-indexer/actions?query=workflow%3ACI) [![codecov](https://codecov.io/gh/nyaruka/rp-indexer/branch/master/graph/badge.svg)](https://codecov.io/gh/nyaruka/rp-indexer) [![Go Report Card](https://goreportcard.com/badge/github.com/nyaruka/rp-indexer)](https://goreportcard.com/report/github.com/nyaruka/rp-indexer)
 
 Simple service for indexing RapidPro contacts into ElasticSearch.
 

@@ -26,7 +26,7 @@ type config struct {
 func main() {
 	config := config{
 		ElasticURL: "http://localhost:9200",
-		DB:         "postgres://localhost/rapidpro?sslmode=disable",
+		DB:         "postgres://localhost/temba?sslmode=disable",
 		Index:      "contacts",
 		Poll:       5,
 		Rebuild:    false,

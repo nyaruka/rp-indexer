@@ -1,4 +1,4 @@
-v5.4.0
+v5.4.0 
 ----------
  * touch README for 5.4 release
 

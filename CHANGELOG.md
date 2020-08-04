@@ -1,3 +1,7 @@
+v5.7.0
+----------
+ * Index last_seen_on
+
 v5.6.0
 ----------
  * 5.6.0 Release Candidate

@@ -15,6 +15,7 @@ import (
 	"github.com/olivere/elastic"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const elasticURL = "http://localhost:9200"
@@ -22,21 +23,21 @@ const indexName = "rp_elastic_test"
 
 func setup(t *testing.T) (*sql.DB, *elastic.Client) {
 	testDB, err := ioutil.ReadFile("testdb.sql")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	db, err := sql.Open("postgres", "postgres://temba:temba@localhost:5432/elastic_test?sslmode=disable")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	_, err = db.Exec(string(testDB))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	client, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetTraceLog(log.New(os.Stdout, "", log.LstdFlags)))
-	assert.NoError(t, err)
+	client, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetTraceLog(log.New(os.Stdout, "", log.LstdFlags)), elastic.SetSniff(false))
+	require.NoError(t, err)
 
 	existing := FindPhysicalIndexes(elasticURL, indexName)
 	for _, idx := range existing {
 		_, err = client.DeleteIndex(idx).Do(context.Background())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 
 	logrus.SetLevel(logrus.DebugLevel)
@@ -97,6 +98,13 @@ func TestIndexing(t *testing.T) {
 
 	// created_on range query
 	assertQuery(t, client, physicalName, elastic.NewRangeQuery("created_on").Gt("2017-01-01"), []int64{1, 6, 8})
+
+	// last_seen_on range query
+	assertQuery(t, client, physicalName, elastic.NewRangeQuery("last_seen_on").Lt("2019-01-01"), []int64{3, 4})
+
+	// last_seen_on is set / not set queries
+	assertQuery(t, client, physicalName, elastic.NewExistsQuery("last_seen_on"), []int64{1, 2, 3, 4, 5, 6})
+	assertQuery(t, client, physicalName, elastic.NewBoolQuery().MustNot(elastic.NewExistsQuery("last_seen_on")), []int64{7, 8, 9})
 
 	// urn query
 	query := elastic.NewNestedQuery("urns", elastic.NewBoolQuery().Must(

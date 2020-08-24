@@ -344,7 +344,7 @@ func MapIndexAlias(elasticURL string, alias string, newIndex string) error {
 const contactQuery = `
 SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
   SELECT
-   id, org_id, uuid, name, language, is_stopped, is_blocked, is_active, created_on, modified_on, last_seen_on,
+   id, org_id, uuid, name, language, status = 'S' AS is_stopped, status = 'B' AS is_blocked, is_active, created_on, modified_on, last_seen_on,
    EXTRACT(EPOCH FROM modified_on) * 1000000 as modified_on_mu,
    (
      SELECT array_to_json(array_agg(row_to_json(u)))

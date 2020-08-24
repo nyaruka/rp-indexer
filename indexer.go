@@ -11,10 +11,40 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nyaruka/gocommon/httpx"
 	log "github.com/sirupsen/logrus"
 )
 
 var batchSize = 500
+
+func ElasticRetries(initialBackoff time.Duration, count int) *httpx.RetryConfig {
+	backoffs := make([]time.Duration, count)
+	backoffs[0] = initialBackoff
+	for i := 1; i < count; i++ {
+		backoffs[i] = backoffs[i-1] * 2
+	}
+	return &httpx.RetryConfig{Backoffs: backoffs, ShouldRetry: ShouldRetry}
+}
+func ShouldRetry(request *http.Request, response *http.Response, withDelay time.Duration) bool {
+
+	// 429 Too Many Requests is recoverable. Sometimes the server puts
+	// a Retry-After response header to indicate when the server is
+	// available to start processing request from client.
+	if response.StatusCode == http.StatusTooManyRequests {
+		return true
+	}
+
+	// check for unexpected EOF
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		log.WithError(err).Error("error reading ES response, retrying")
+		return true
+	}
+
+	response.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	return false
+}
 
 // CreateNewIndex creates a new index for the passed in alias.
 //
@@ -132,7 +162,10 @@ func CleanupIndexes(url string, alias string) error {
 func MakeJSONRequest(method string, url string, body string, jsonStruct interface{}) (*http.Response, error) {
 	req, _ := http.NewRequest(method, url, bytes.NewReader([]byte(body)))
 	req.Header.Add("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	retrycount := 5
+	initialBackoff := 2 * time.Second
+	retryConfig := ElasticRetries(initialBackoff, retrycount)
+	resp, err := httpx.Do(http.DefaultClient, req, retryConfig, nil)
 
 	l := log.WithField("url", url).WithField("method", method).WithField("request", body)
 	if err != nil {

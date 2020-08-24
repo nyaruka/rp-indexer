@@ -1,3 +1,8 @@
+v5.7.1
+----------
+ * Use contact status instead of is_stopped / is_blocked
+ * Retry HTTP calls to ES
+
 v5.7.0
 ----------
  * Index last_seen_on

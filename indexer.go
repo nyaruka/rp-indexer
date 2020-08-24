@@ -17,10 +17,16 @@ import (
 
 var batchSize = 500
 
-func ElasticRetries() *httpx.RetryConfig {
-	// retry settings
-	count := 5
-	initialBackoff := 1 * time.Second
+var retryConfig *httpx.RetryConfig
+
+func init() {
+	//setup httpx retry configuration
+	var retrycount = 5
+	var initialBackoff = 1 * time.Second
+	retryConfig = ElasticRetries(initialBackoff, retrycount)
+}
+
+func ElasticRetries(initialBackoff time.Duration, count int) *httpx.RetryConfig {
 	backoffs := make([]time.Duration, count)
 	backoffs[0] = initialBackoff
 	for i := 1; i < count; i++ {
@@ -165,7 +171,7 @@ func CleanupIndexes(url string, alias string) error {
 func MakeJSONRequest(method string, url string, body string, jsonStruct interface{}) (*http.Response, error) {
 	req, _ := http.NewRequest(method, url, bytes.NewReader([]byte(body)))
 	req.Header.Add("Content-Type", "application/json")
-	resp, err := httpx.Do(http.DefaultClient, req, ElasticRetries(), nil)
+	resp, err := httpx.Do(http.DefaultClient, req, retryConfig, nil)
 
 	l := log.WithField("url", url).WithField("method", method).WithField("request", body)
 	if err != nil {

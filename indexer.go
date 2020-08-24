@@ -46,6 +46,11 @@ func ShouldRetry(request *http.Request, response *http.Response, withDelay time.
 	return false
 }
 
+// retry settings
+var retrycount = 5
+var initialBackoff = 1 * time.Second
+var retryConfig = ElasticRetries(initialBackoff, retrycount)
+
 // CreateNewIndex creates a new index for the passed in alias.
 //
 // Note that we do not create an index with the passed name, instead creating one

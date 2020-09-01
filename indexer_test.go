@@ -95,6 +95,9 @@ func TestIndexing(t *testing.T) {
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("is_blocked", "true"), []int64{3})
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("is_stopped", "true"), []int64{2})
 
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("status", "B"), []int64{3})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("status", "S"), []int64{2})
+
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("org_id", "1"), []int64{1, 2, 3, 4})
 
 	// created_on range query

@@ -1,3 +1,7 @@
+v5.7.2
+----------
+ * add status field to index for querying
+
 v5.7.1
 ----------
  * Use contact status instead of is_stopped / is_blocked

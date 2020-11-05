@@ -1,3 +1,7 @@
+v6.0.0
+----------
+ * Update README
+
 v5.7.2
 ----------
  * add status field to index for querying

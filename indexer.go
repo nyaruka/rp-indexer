@@ -84,7 +84,7 @@ func CreateNewIndex(url string, alias string) (string, error) {
 	}
 
 	// initialize our index
-	createURL := fmt.Sprintf("%s/%s", url, physicalIndex)
+	createURL := fmt.Sprintf("%s/%s?include_type_name=true", url, physicalIndex)
 	_, err := MakeJSONRequest(http.MethodPut, createURL, indexSettings, nil)
 	if err != nil {
 		return "", err
@@ -631,10 +631,10 @@ const indexSettings = `
 const lastModifiedQuery = `{ "sort": [{ "modified_on_mu": "desc" }]}`
 
 // indexes a contact
-const indexCommand = `{ "index": { "_id": %d, "_type": "_doc", "_version": %d, "_version_type": "external", "_routing": %d} }`
+const indexCommand = `{ "index": { "_id": %d, "_type": "_doc", "version": %d, "version_type": "external", "routing": %d} }`
 
 // deletes a contact
-const deleteCommand = `{ "delete" : { "_id": %d, "_type": "_doc", "_version": %d, "_version_type": "external", "_routing": %d} }`
+const deleteCommand = `{ "delete" : { "_id": %d, "_type": "_doc", "version": %d, "version_type": "external", "routing": %d} }`
 
 // adds an alias for an index
 type addAliasCommand struct {
@@ -660,8 +660,10 @@ type aliasCommand struct {
 // our response for finding the most recent contact
 type queryResponse struct {
 	Hits struct {
-		Total int `json:"total"`
-		Hits  []struct {
+		Total struct {
+			Value int `json:"value"`
+		} `json:"total"`
+		Hits []struct {
 			Source struct {
 				ID         int64     `json:"id"`
 				ModifiedOn time.Time `json:"modified_on"`

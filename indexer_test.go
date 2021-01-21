@@ -13,7 +13,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/olivere/elastic"
+	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,9 +49,9 @@ func setup(t *testing.T) (*sql.DB, *elastic.Client) {
 func assertQuery(t *testing.T, client *elastic.Client, index string, query elastic.Query, hits []int64) {
 	results, err := client.Search().Index(index).Query(query).Sort("id", true).Pretty(true).Do(context.Background())
 	assert.NoError(t, err)
-	assert.Equal(t, int64(len(hits)), results.Hits.TotalHits)
+	assert.Equal(t, int64(len(hits)), results.Hits.TotalHits.Value)
 
-	if int64(len(hits)) == results.Hits.TotalHits {
+	if int64(len(hits)) == results.Hits.TotalHits.Value {
 		for i, hit := range results.Hits.Hits {
 			assert.Equal(t, fmt.Sprintf("%d", hits[i]), hit.Id)
 		}

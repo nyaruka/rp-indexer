@@ -14,7 +14,7 @@ jobs:
     - name: Install ElasticSearch
       uses: nyaruka/elasticsearch-action@master
       with:
-        elastic version: '6.8.5'
+        elastic version: '7.10.1'
 
     - name: Install PostgreSQL
       uses: harmon758/postgresql-action@v1

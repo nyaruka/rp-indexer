@@ -8,6 +8,7 @@ fabfile.pyc
 fabconfig.py
 fabconfig.pyc
 fabric
+rp-indexer
 
 # Test binary, build with `go test -c`
 *.test

@@ -68,7 +68,7 @@ func CreateNewIndex(url string, alias string) (string, error) {
 	idx := 0
 
 	// check if it exists
-	for true {
+	for {
 		resp, err := http.Get(fmt.Sprintf("%s/%s", url, physicalIndex))
 		if err != nil {
 			return "", err
@@ -332,7 +332,7 @@ func IndexContacts(db *sql.DB, elasticURL string, index string, lastModified tim
 			break
 		}
 
-		elapsed := time.Now().Sub(start)
+		elapsed := time.Since(start)
 		rate := float32(processedCount) / (float32(elapsed) / float32(time.Second))
 		log.WithFields(map[string]interface{}{
 			"rate":    int(rate),

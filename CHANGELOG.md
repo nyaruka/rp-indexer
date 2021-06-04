@@ -1,3 +1,7 @@
+v6.3.0
+----------
+ * Fix creating of location keyword fields when values have punctuation
+
 v6.2.0
 ----------
  * add rp-indexer to .gitignore

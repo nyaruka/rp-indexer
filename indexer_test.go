@@ -202,12 +202,12 @@ func TestIndexing(t *testing.T) {
 	// phrase matches all
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "fcab2439-861c-4832-aa54-0c97f38f24ab"),
-		elastic.NewMatchPhraseQuery("fields.district", "King Côunty")))
+		elastic.NewMatchPhraseQuery("fields.district", "King-Côunty")))
 	assertQuery(t, client, physicalName, query, []int64{7})
 
 	query = elastic.NewNestedQuery("fields", elastic.NewBoolQuery().Must(
 		elastic.NewMatchQuery("fields.field", "fcab2439-861c-4832-aa54-0c97f38f24ab"),
-		elastic.NewMatchQuery("fields.district_keyword", "King Côunty")))
+		elastic.NewMatchQuery("fields.district_keyword", "King-Côunty")))
 	assertQuery(t, client, physicalName, query, []int64{7})
 
 	// ward query

@@ -399,7 +399,7 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
                        select case
                     when value ? 'ward'
                       then jsonb_build_object(
-                        'ward_keyword', trim(substring(value ->> 'ward' from  '(?!.* > )([\w ]+)'))
+                        'ward_keyword', trim(substring(value ->> 'ward' from  '(?!.* > )([^>]+)'))
                       )
                     else '{}' :: jsonb
                     end || district_value.value as value
@@ -407,7 +407,7 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
                   select case
                            when value ? 'district'
                              then jsonb_build_object(
-                               'district_keyword', trim(substring(value ->> 'district' from  '(?!.* > )([\w ]+)'))
+                               'district_keyword', trim(substring(value ->> 'district' from  '(?!.* > )([^>]+)'))
                              )
                            else '{}' :: jsonb
                            end || state_value.value as value
@@ -416,7 +416,7 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
                          select case
                                   when value ? 'state'
                                     then jsonb_build_object(
-                                      'state_keyword', trim(substring(value ->> 'state' from  '(?!.* > )([\w ]+)'))
+                                      'state_keyword', trim(substring(value ->> 'state' from  '(?!.* > )([^>]+)'))
                                     )
                                   else '{}' :: jsonb
                                   end ||

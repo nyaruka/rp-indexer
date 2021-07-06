@@ -1,3 +1,7 @@
+v6.4.0
+----------
+ * 6.4.0 candidate
+
 v6.3.0
 ----------
  * Fix creating of location keyword fields when values have punctuation

@@ -97,6 +97,10 @@ func TestIndexing(t *testing.T) {
 
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("org_id", "1"), []int64{1, 2, 3, 4})
 
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("tickets", 2), []int64{1})
+	assertQuery(t, client, physicalName, elastic.NewMatchQuery("tickets", 1), []int64{2, 3})
+	assertQuery(t, client, physicalName, elastic.NewRangeQuery("tickets").Gt(0), []int64{1, 2, 3})
+
 	// created_on range query
 	assertQuery(t, client, physicalName, elastic.NewRangeQuery("created_on").Gt("2017-01-01"), []int64{1, 6, 8})
 

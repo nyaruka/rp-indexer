@@ -92,9 +92,6 @@ func TestIndexing(t *testing.T) {
 	// test contact, not indexed
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("language", "fra"), []int64{})
 
-	assertQuery(t, client, physicalName, elastic.NewMatchQuery("is_blocked", "true"), []int64{3})
-	assertQuery(t, client, physicalName, elastic.NewMatchQuery("is_stopped", "true"), []int64{2})
-
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("status", "B"), []int64{3})
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("status", "S"), []int64{2})
 
@@ -337,8 +334,6 @@ func TestRetryServer(t *testing.T) {
 						"uuid": "c7a2dd87-a80e-420b-8431-ca48d422e924",
 						"name": null,
 						"language": "eng",
-						"is_stopped": false,
-						"is_blocked": false,
 						"is_active": true,
 						"created_on": "2017-11-10T16:11:59.890662-05:00",
 						"modified_on": "2017-11-10T16:11:59.890662-05:00",

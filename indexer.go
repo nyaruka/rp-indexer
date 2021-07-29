@@ -3,6 +3,7 @@ package indexer
 import (
 	"bytes"
 	"database/sql"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -383,7 +384,7 @@ func MapIndexAlias(elasticURL string, alias string, newIndex string) error {
 const contactQuery = `
 SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
   SELECT
-   id, org_id, uuid, name, language, status, status = 'S' AS is_stopped, status = 'B' AS is_blocked, is_active, created_on, modified_on, last_seen_on,
+   id, org_id, uuid, name, language, status, is_active, created_on, modified_on, last_seen_on,
    EXTRACT(EPOCH FROM modified_on) * 1000000 as modified_on_mu,
    (
      SELECT array_to_json(array_agg(row_to_json(u)))
@@ -443,189 +444,8 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
 `
 
 // settings and mappings for our index
-const indexSettings = `
-{
-	"settings": {
-		"index": {
-			"number_of_shards": 2,
-			"number_of_replicas": 1,
-			"routing_partition_size": 1
-		},
-		"analysis": {
-            "analyzer": {
-                "trigrams": {
-                    "type":      "custom",
-                    "tokenizer": "trigram",
-                    "filter": [
-                        "lowercase"
-                    ]
-				},
-				"locations": {
-					"tokenizer": "location_tokenizer",
-					"filter": [
-						"lowercase",
-						"word_delimiter"
-					]
-				},
-				"prefix": {
-                    "type":      "custom",
-                    "tokenizer": "standard",
-                    "filter": [
-                        "lowercase",
-                        "prefix_filter"
-                    ]
-				},
-				"name_search": {
-					"type": "custom",
-					"tokenizer": "standard",
-					"filter": [
-						"lowercase",
-						"max_length"
-					]
-				}
-			},
-			"tokenizer": {
-				"location_tokenizer": {
-				  "type": "pattern",
-				  "pattern": "(.* > )?([^>]+)",
-				  "group": 2
-				},
-				"trigram": {
-					"type" : "ngram",
-					"min_gram" : 3,
-					"max_gram" : 3
-				}
-			},
-			"normalizer": {
-				"lowercase": {
-					"type": "custom",
-					"char_filter": [],
-					"filter": ["lowercase", "trim"]
-				}
-			},
-			"filter": {
-                "prefix_filter": {
-                    "type":     "edge_ngram",
-                    "min_gram": 2,
-                    "max_gram": 8
-				},
-				"max_length":{
-					"type": "truncate",
-					"length": 8
-				}
-	        }
-        }
-	},
-
-	"mappings": {
-		"_doc": {
-			"_routing": {
-				"required": true
-			},
-			"properties": {
-				"fields": {
-					"type": "nested",
-					"properties": {
-						"field": {
-							"type": "keyword"
-						},
-						"text": {
-							"type": "keyword",
-							"normalizer": "lowercase"
-						},
-						"number": {
-							"type": "scaled_float",
-							"scaling_factor": 10000
-						},
-						"datetime": {
-							"type": "date"
-						},
-						"state": {
-							"type": "text",
-							"analyzer": "locations"
-						},
-                        "state_keyword": {
-							"type": "keyword",
-							"normalizer": "lowercase"
-                        },
-						"district": {
-							"type": "text",
-							"analyzer": "locations"
-						},
-						"district_keyword": {
-							"type": "keyword",
-							"normalizer": "lowercase"
-                        },
-						"ward": {
-							"type": "text",
-							"analyzer": "locations"
-						},
-						"ward_keyword": {
-							"type": "keyword",
-							"normalizer": "lowercase"
-                        }
-					}
-				},
-				"urns": {
-					"type": "nested",
-					"properties": {
-						"path": {
-							"type": "text",
-							"analyzer": "trigrams",
-							"fields": {
-								"keyword": {
-									"type": "keyword",
-									"normalizer": "lowercase"
-								}
-							}
-						},
-						"scheme": {
-							"type": "keyword",
-							"normalizer": "lowercase"
-						}
-					}
-				},
-				"groups": {
-					"type": "keyword"
-				},
-				"uuid": {
-					"type": "keyword"
-				},
-				"status": {
-					"type": "keyword"
-				},
-				"language": {
-					"type": "keyword",
-					"normalizer": "lowercase"
-				},
-				"modified_on": {
-					"type": "date"
-				},
-				"created_on": {
-					"type": "date"
-				},
-				"modified_on_mu": {
-					"type": "long"
-				},
-				"last_seen_on": {
-					"type": "date"
-				},
-				"name": {
-					"type": "text",
-					"analyzer": "prefix",
-					"search_analyzer": "name_search",
-					"fields": {
-						"keyword": {
-							"type": "keyword",
-							"normalizer": "lowercase"
-						}
-					}
-				}
-			}
-		}
-	}
-}
-`
+//go:embed contacts/index_settings.json
+var indexSettings string
 
 // gets our last modified contact
 const lastModifiedQuery = `{ "sort": [{ "modified_on_mu": "desc" }]}`

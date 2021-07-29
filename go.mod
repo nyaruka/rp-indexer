@@ -9,11 +9,8 @@ require (
 	github.com/nyaruka/ezconf v0.2.1
 	github.com/nyaruka/gocommon v1.3.0
 	github.com/olivere/elastic/v7 v7.0.22
-	github.com/onsi/ginkgo v1.14.0 // indirect
-	github.com/sirupsen/logrus v1.0.5
+	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.5.1
-	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
-	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 )
 
-go 1.13
+go 1.16

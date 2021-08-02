@@ -1,3 +1,10 @@
+v6.5.0
+----------
+ * Include contact.ticket_count as tickets in index
+ * Update to go 1.16
+ * Use embedded file for index settings
+ * Remove no longer used is_blocked and and is_stopped fields
+
 v6.4.0
 ----------
  * 6.4.0 candidate

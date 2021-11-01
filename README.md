@@ -8,7 +8,7 @@ Simple service for indexing RapidPro contacts into ElasticSearch.
 
 # Deploying
 
-As Indexer is a go application, it compiles to a binary and that binary along with the config file is all
+As Indexer is a Go application, it compiles to a binary and that binary along with the config file is all
 you need to run it on your server. You can find bundles for each platform in the
 [releases directory](https://github.com/nyaruka/rp-indexer/releases). You should only run a single indexer
 instance for a deployment.

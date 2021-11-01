@@ -1,3 +1,7 @@
+v7.0.0
+----------
+ * Test on PG12 and 13
+
 v6.5.0
 ----------
  * Include contact.ticket_count as tickets in index

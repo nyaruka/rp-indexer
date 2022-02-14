@@ -1,3 +1,8 @@
+v7.1.0
+----------
+ * Index contact.current_flow_id as flow uuid
+ * CI with go 1.17
+
 v7.0.0
 ----------
  * Test on PG12 and 13

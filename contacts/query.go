@@ -58,7 +58,10 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
 				FROM contacts_contactgroup_contacts, contacts_contactgroup
 				WHERE contact_id = contacts_contact.id AND contacts_contactgroup_contacts.contactgroup_id = contacts_contactgroup.id
 			) g
-		) AS groups
+		) AS groups,
+		(
+			SELECT f.uuid FROM flows_flow f WHERE f.id = contacts_contact.current_flow_id
+		) AS flow
 	FROM contacts_contact
 	WHERE modified_on >= $1
 	ORDER BY modified_on ASC

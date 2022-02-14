@@ -150,6 +150,9 @@
                 "status": {
                     "type": "keyword"
                 },
+                "flow": {
+                    "type": "keyword"
+                },
                 "tickets": {
                     "type": "integer"
                 },

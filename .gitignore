@@ -5,9 +5,7 @@
 *.dylib
 fabfile.py
 fabfile.pyc
-fabconfig.py
-fabconfig.pyc
-fabric
+deploy/
 rp-indexer
 
 # Test binary, build with `go test -c`

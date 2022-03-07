@@ -28,6 +28,7 @@ your index occasionally to get rid of bloat.
 # Configuration
 
 Indexer uses a tiered configuration system, each option takes precendence over the ones above it:
+
  1. The configuration file
  2. Environment variables starting with `INDEXER_` 
  3. Command line parameters
@@ -40,7 +41,7 @@ environment variables and parameters and for more details on each option.
 
 For use with RapidPro, you will want to configure these settings:
 
- * `INDEXER_DB`: a URL connection string for your RapidPro database
+ * `INDEXER_DB`: a URL connection string for your RapidPro database or read replica
  * `INDEXER_ELASTIC_URL`: the URL for your ElasticSearch endpoint
  
 Recommended settings for error reporting:

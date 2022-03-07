@@ -1,3 +1,7 @@
+v7.2.0
+----------
+ * Tweak README
+
 v7.1.0
 ----------
  * Index contact.current_flow_id as flow uuid

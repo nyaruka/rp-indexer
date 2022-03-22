@@ -153,6 +153,9 @@
                 "flow": {
                     "type": "keyword"
                 },
+                "flow_id": {
+                    "type": "integer"
+                },
                 "flow_history": {
                     "type": "integer"
                 },

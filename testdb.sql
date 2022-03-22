@@ -52,6 +52,15 @@ CREATE TABLE contacts_contactgroup_contacts (
     contact_id integer NOT NULL REFERENCES contacts_contact(id)
 );
 
+
+DROP TABLE IF EXISTS flows_flowrun CASCADE;
+CREATE TABLE flows_flowrun (
+    id SERIAL PRIMARY KEY,
+    uuid character varying(36) NOT NULL,
+    flow_id integer REFERENCES flows_flow(id),
+    contact_id integer REFERENCES contacts_contact(id)
+);
+
 INSERT INTO flows_flow(id, uuid, name) VALUES
 (1, '6d3cf1eb-546e-4fb8-a5ca-69187648fbf6', 'Favorites'),
 (2, '4eea8ff1-4fe2-4ce5-92a4-0870a499973a', 'Catch All');
@@ -152,3 +161,9 @@ INSERT INTO contacts_contactgroup_contacts(id, contact_id, contactgroup_id) VALU
 (1, 1, 1),
 (2, 1, 4),
 (3, 2, 4);
+
+INSERT INTO flows_flowrun(id, uuid, flow_id, contact_id) VALUES
+(1, '8b30ee61-e19d-427e-bb9f-4b8cd2c31d0c', 1, 1),
+(2, '94639979-155e-444d-95e9-a39dad64dbd5', 1, 1),
+(3, '74d918df-0e31-4547-98a9-5d765450e2ac', 2, 1),
+(4, '14fdf8fc-6e02-4759-b9be-cacc5991cd14', 1, 2);

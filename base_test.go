@@ -88,8 +88,8 @@ func TestRetryServer(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	ci := contacts.NewIndexer("rp_elastic_test", ts.URL)
-	ci.FindPhysicalIndexes()
+	ci := contacts.NewIndexer(ts.URL, "rp_elastic_test", 500)
+	ci.FindIndexes()
 
 	require.Equal(t, responseCounter, 4)
 }

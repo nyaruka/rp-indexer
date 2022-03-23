@@ -16,12 +16,13 @@ import (
 // Indexer is base interface for indexers
 type Indexer interface {
 	Name() string
-	Index(db *sql.DB, rebuild, cleanup bool) error
+	Index(db *sql.DB, rebuild, cleanup bool) (string, error)
+	Stats() (int64, int64, time.Duration)
 }
 
 type BaseIndexer struct {
-	name       string // e.g. contacts, used as based index name
-	ElasticURL string
+	elasticURL string
+	name       string // e.g. contacts, used as the alias
 
 	// statistics
 	indexedTotal int64
@@ -29,12 +30,16 @@ type BaseIndexer struct {
 	elapsedTotal time.Duration
 }
 
-func NewBaseIndexer(name, elasticURL string) BaseIndexer {
-	return BaseIndexer{name: name, ElasticURL: elasticURL}
+func NewBaseIndexer(elasticURL, name string) BaseIndexer {
+	return BaseIndexer{elasticURL: elasticURL, name: name}
 }
 
 func (i *BaseIndexer) Name() string {
 	return i.name
+}
+
+func (i *BaseIndexer) Log() *logrus.Entry {
+	return logrus.WithField("indexer", i.name)
 }
 
 func (i *BaseIndexer) Stats() (int64, int64, time.Duration) {
@@ -47,16 +52,16 @@ func (i *BaseIndexer) RecordComplete(indexed, deleted int, elapsed time.Duration
 	i.deletedTotal += int64(deleted)
 	i.elapsedTotal += elapsed
 
-	logrus.WithField("indexer", i.name).WithField("indexed", indexed).WithField("deleted", deleted).WithField("elapsed", elapsed).Info("completed indexing")
+	i.Log().WithField("indexed", indexed).WithField("deleted", deleted).WithField("elapsed", elapsed).Info("completed indexing")
 }
 
 // our response for figuring out the physical index for an alias
 type infoResponse map[string]interface{}
 
-// FindPhysicalIndexes finds all our physical indexes
-func (i *BaseIndexer) FindPhysicalIndexes() []string {
+// FindIndexes finds all our physical indexes
+func (i *BaseIndexer) FindIndexes() []string {
 	response := infoResponse{}
-	_, err := MakeJSONRequest(http.MethodGet, fmt.Sprintf("%s/%s", i.ElasticURL, i.name), nil, &response)
+	_, err := makeJSONRequest(http.MethodGet, fmt.Sprintf("%s/%s", i.elasticURL, i.name), nil, &response)
 	indexes := make([]string, 0)
 
 	// error could mean a variety of things, but we'll figure that out later
@@ -72,7 +77,7 @@ func (i *BaseIndexer) FindPhysicalIndexes() []string {
 	// reverse sort order should put our newest index first
 	sort.Sort(sort.Reverse(sort.StringSlice(indexes)))
 
-	logrus.WithField("indexer", i.name).WithField("indexes", indexes).Debug("found physical indexes")
+	i.Log().WithField("indexes", indexes).Debug("found physical indexes")
 
 	return indexes
 }
@@ -91,7 +96,7 @@ func (i *BaseIndexer) CreateNewIndex(settings json.RawMessage) (string, error) {
 
 	// check if it exists
 	for {
-		resp, err := http.Get(fmt.Sprintf("%s/%s", i.ElasticURL, index))
+		resp, err := http.Get(fmt.Sprintf("%s/%s", i.elasticURL, index))
 		if err != nil {
 			return "", err
 		}
@@ -106,13 +111,13 @@ func (i *BaseIndexer) CreateNewIndex(settings json.RawMessage) (string, error) {
 	}
 
 	// create the new index
-	_, err := MakeJSONRequest(http.MethodPut, fmt.Sprintf("%s/%s?include_type_name=true", i.ElasticURL, index), settings, nil)
+	_, err := makeJSONRequest(http.MethodPut, fmt.Sprintf("%s/%s?include_type_name=true", i.elasticURL, index), settings, nil)
 	if err != nil {
 		return "", err
 	}
 
 	// all went well, return our physical index name
-	logrus.WithField("indexer", i.name).WithField("index", index).Info("created new index")
+	i.Log().WithField("index", index).Info("created new index")
 
 	return index, nil
 }
@@ -144,7 +149,7 @@ func (i *BaseIndexer) UpdateAlias(newIndex string) error {
 	commands := make([]interface{}, 0)
 
 	// find existing physical indexes
-	existing := i.FindPhysicalIndexes()
+	existing := i.FindIndexes()
 	for _, idx := range existing {
 		remove := removeAliasCommand{}
 		remove.Remove.Alias = i.name
@@ -162,9 +167,9 @@ func (i *BaseIndexer) UpdateAlias(newIndex string) error {
 
 	aliasJSON := jsonx.MustMarshal(aliasCommand{Actions: commands})
 
-	_, err := MakeJSONRequest(http.MethodPost, fmt.Sprintf("%s/_aliases", i.ElasticURL), aliasJSON, nil)
+	_, err := makeJSONRequest(http.MethodPost, fmt.Sprintf("%s/_aliases", i.elasticURL), aliasJSON, nil)
 
-	logrus.WithField("indexer", i.name).WithField("index", newIndex).Debug("adding new alias")
+	i.Log().WithField("index", newIndex).Info("updated alias")
 
 	return err
 }
@@ -179,7 +184,7 @@ type healthResponse struct {
 // CleanupIndexes removes all indexes that are older than the currently active index
 func (i *BaseIndexer) CleanupIndexes() error {
 	// find our current indexes
-	currents := i.FindPhysicalIndexes()
+	currents := i.FindIndexes()
 
 	// no current indexes? this a noop
 	if len(currents) == 0 {
@@ -188,7 +193,7 @@ func (i *BaseIndexer) CleanupIndexes() error {
 
 	// find all the current indexes
 	healthResponse := healthResponse{}
-	_, err := MakeJSONRequest(http.MethodGet, fmt.Sprintf("%s/%s", i.ElasticURL, "_cluster/health?level=indices"), nil, &healthResponse)
+	_, err := makeJSONRequest(http.MethodGet, fmt.Sprintf("%s/%s", i.elasticURL, "_cluster/health?level=indices"), nil, &healthResponse)
 	if err != nil {
 		return err
 	}
@@ -197,7 +202,7 @@ func (i *BaseIndexer) CleanupIndexes() error {
 	for key := range healthResponse.Indices {
 		if strings.HasPrefix(key, i.name) && strings.Compare(key, currents[0]) < 0 {
 			logrus.WithField("index", key).Info("removing old index")
-			_, err = MakeJSONRequest(http.MethodDelete, fmt.Sprintf("%s/%s", i.ElasticURL, key), nil, nil)
+			_, err = makeJSONRequest(http.MethodDelete, fmt.Sprintf("%s/%s", i.elasticURL, key), nil, nil)
 			if err != nil {
 				return err
 			}
@@ -225,9 +230,9 @@ type indexResponse struct {
 // indexes the batch of contacts
 func (i *BaseIndexer) IndexBatch(index string, batch []byte) (int, int, error) {
 	response := indexResponse{}
-	indexURL := fmt.Sprintf("%s/%s/_bulk", i.ElasticURL, index)
+	indexURL := fmt.Sprintf("%s/%s/_bulk", i.elasticURL, index)
 
-	_, err := MakeJSONRequest(http.MethodPut, indexURL, batch, &response)
+	_, err := makeJSONRequest(http.MethodPut, indexURL, batch, &response)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -257,4 +262,36 @@ func (i *BaseIndexer) IndexBatch(index string, batch []byte) (int, int, error) {
 	logrus.WithField("created", createdCount).WithField("deleted", deletedCount).WithField("conflicted", conflictedCount).Debug("indexed batch")
 
 	return createdCount, deletedCount, nil
+}
+
+// our response for finding the last modified document
+type queryResponse struct {
+	Hits struct {
+		Total struct {
+			Value int `json:"value"`
+		} `json:"total"`
+		Hits []struct {
+			Source struct {
+				ID         int64     `json:"id"`
+				ModifiedOn time.Time `json:"modified_on"`
+			} `json:"_source"`
+		} `json:"hits"`
+	} `json:"hits"`
+}
+
+// GetLastModified queries a concrete index and finds the last modified document, returning its modified time
+func (i *BaseIndexer) GetLastModified(index string) (time.Time, error) {
+	lastModified := time.Time{}
+
+	// get the newest document on our index
+	queryResponse := queryResponse{}
+	_, err := makeJSONRequest(http.MethodPost, fmt.Sprintf("%s/%s/_search", i.elasticURL, index), []byte(`{ "sort": [{ "modified_on_mu": "desc" }]}`), &queryResponse)
+	if err != nil {
+		return lastModified, err
+	}
+
+	if len(queryResponse.Hits.Hits) > 0 {
+		lastModified = queryResponse.Hits.Hits[0].Source.ModifiedOn
+	}
+	return lastModified, nil
 }

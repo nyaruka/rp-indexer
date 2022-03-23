@@ -13,10 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var BatchSize = 500
-
 //go:embed index_settings.json
-var IndexSettings json.RawMessage
+var indexSettings json.RawMessage
 
 // indexes a contact
 const indexCommand = `{ "index": { "_id": %d, "_type": "_doc", "version": %d, "version_type": "external", "routing": %d} }`
@@ -27,20 +25,24 @@ const deleteCommand = `{ "delete" : { "_id": %d, "_type": "_doc", "version": %d,
 // ContactIndexer is an indexer for contacts
 type Indexer struct {
 	indexer.BaseIndexer
+
+	batchSize int
 }
 
 // NewIndexer creates a new contact indexer
-func NewIndexer(name, elasticURL string) *Indexer {
+func NewIndexer(elasticURL, name string, batchSize int) *Indexer {
 	return &Indexer{
-		BaseIndexer: indexer.NewBaseIndexer(name, elasticURL),
+		BaseIndexer: indexer.NewBaseIndexer(elasticURL, name),
+		batchSize:   batchSize,
 	}
 }
 
-func (i *Indexer) Index(db *sql.DB, rebuild, cleanup bool) error {
+// Index indexes modified contacts and returns the name of the concrete index
+func (i *Indexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error) {
 	var err error
 
 	// find our physical index
-	physicalIndexes := i.FindPhysicalIndexes()
+	physicalIndexes := i.FindIndexes()
 
 	physicalIndex := ""
 	if len(physicalIndexes) > 0 {
@@ -52,26 +54,26 @@ func (i *Indexer) Index(db *sql.DB, rebuild, cleanup bool) error {
 
 	// doesn't exist or we are rebuilding, create it
 	if physicalIndex == "" || rebuild {
-		physicalIndex, err = i.CreateNewIndex(IndexSettings)
+		physicalIndex, err = i.CreateNewIndex(indexSettings)
 		if err != nil {
-			return errors.Wrap(err, "error creating new index")
+			return "", errors.Wrap(err, "error creating new index")
 		}
-		logrus.WithField("indexer", i.Name()).WithField("index", physicalIndex).Info("created new physical index")
+		i.Log().WithField("index", physicalIndex).Info("created new physical index")
 		remapAlias = true
 	}
 
-	lastModified, err := indexer.GetLastModified(i.ElasticURL, physicalIndex)
+	lastModified, err := i.GetLastModified(physicalIndex)
 	if err != nil {
-		return errors.Wrap(err, "error finding last modified")
+		return "", errors.Wrap(err, "error finding last modified")
 	}
 
-	logrus.WithField("indexer", i.Name()).WithField("index", physicalIndex).WithField("last_modified", lastModified).Info("indexing newer than last modified")
+	i.Log().WithField("index", physicalIndex).WithField("last_modified", lastModified).Info("indexing newer than last modified")
 
 	// now index our docs
 	start := time.Now()
-	indexed, deleted, err := i.IndexModified(db, physicalIndex, lastModified.Add(-5*time.Second))
+	indexed, deleted, err := i.indexModified(db, physicalIndex, lastModified.Add(-5*time.Second))
 	if err != nil {
-		return errors.Wrap(err, "error indexing documents")
+		return "", errors.Wrap(err, "error indexing documents")
 	}
 
 	i.RecordComplete(indexed, deleted, time.Since(start))
@@ -80,7 +82,7 @@ func (i *Indexer) Index(db *sql.DB, rebuild, cleanup bool) error {
 	if remapAlias {
 		err := i.UpdateAlias(physicalIndex)
 		if err != nil {
-			return errors.Wrap(err, "error remapping alias")
+			return "", errors.Wrap(err, "error updating alias")
 		}
 		remapAlias = false
 	}
@@ -89,21 +91,17 @@ func (i *Indexer) Index(db *sql.DB, rebuild, cleanup bool) error {
 	if cleanup {
 		err := i.CleanupIndexes()
 		if err != nil {
-			return errors.Wrap(err, "error cleaning up old indexes")
+			return "", errors.Wrap(err, "error cleaning up old indexes")
 		}
 	}
 
-	return nil
+	return physicalIndex, nil
 }
 
 // IndexModified queries and indexes all contacts with a lastModified greater than or equal to the passed in time
-func (i *Indexer) IndexModified(db *sql.DB, index string, lastModified time.Time) (int, int, error) {
+func (i *Indexer) indexModified(db *sql.DB, index string, lastModified time.Time) (int, int, error) {
 	batch := &bytes.Buffer{}
 	createdCount, deletedCount, processedCount := 0, 0, 0
-
-	if index == "" {
-		return 0, 0, errors.New("empty index")
-	}
 
 	var modifiedOn time.Time
 	var contactJSON string
@@ -140,18 +138,20 @@ func (i *Indexer) IndexModified(db *sql.DB, index string, lastModified time.Time
 
 			if isActive {
 				logrus.WithField("id", id).WithField("modifiedOn", modifiedOn).WithField("contact", contactJSON).Debug("modified contact")
+
 				batch.WriteString(fmt.Sprintf(indexCommand, id, modifiedOn.UnixNano(), orgID))
 				batch.WriteString("\n")
 				batch.WriteString(contactJSON)
 				batch.WriteString("\n")
 			} else {
 				logrus.WithField("id", id).WithField("modifiedOn", modifiedOn).Debug("deleted contact")
+
 				batch.WriteString(fmt.Sprintf(deleteCommand, id, modifiedOn.UnixNano(), orgID))
 				batch.WriteString("\n")
 			}
 
 			// write to elastic search in batches
-			if queryCount%BatchSize == 0 {
+			if queryCount%i.batchSize == 0 {
 				created, deleted, err := i.IndexBatch(index, batch.Bytes())
 				if err != nil {
 					return 0, 0, err
@@ -181,16 +181,12 @@ func (i *Indexer) IndexModified(db *sql.DB, index string, lastModified time.Time
 			break
 		}
 
+		rows.Close()
+
 		elapsed := time.Since(start)
 		rate := float32(processedCount) / (float32(elapsed) / float32(time.Second))
-		logrus.WithFields(map[string]interface{}{
-			"rate":    int(rate),
-			"added":   createdCount,
-			"deleted": deletedCount,
-			"elapsed": elapsed,
-			"index":   index}).Info("updated contact index")
 
-		rows.Close()
+		i.Log().WithField("index", index).WithFields(logrus.Fields{"rate": int(rate), "added": createdCount, "deleted": deletedCount, "elapsed": elapsed}).Info("indexed contact batch")
 	}
 
 	return createdCount, deletedCount, nil

@@ -125,7 +125,7 @@ type queryResponse struct {
 }
 
 // our response for indexing contacts
-type indexResponse struct {
+type IndexResponse struct {
 	Items []struct {
 		Index struct {
 			ID     string `json:"_id"`

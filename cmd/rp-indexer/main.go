@@ -8,9 +8,7 @@ import (
 	"github.com/evalphobia/logrus_sentry"
 	_ "github.com/lib/pq"
 	"github.com/nyaruka/ezconf"
-	indexer "github.com/nyaruka/rp-indexer"
 	"github.com/nyaruka/rp-indexer/contacts"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -66,7 +64,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ci := NewContactIndexer(config.ElasticURL, config.Index, config.Rebuild, config.Cleanup)
+	ci := contacts.NewIndexer(config.ElasticURL, config.Index, config.Rebuild, config.Cleanup)
 
 	for {
 		err := ci.Index(db)
@@ -87,75 +85,4 @@ func main() {
 		// sleep a bit before starting again
 		time.Sleep(time.Second * 5)
 	}
-}
-
-type ContactIndexer struct {
-	indexer.BaseIndexer
-}
-
-func NewContactIndexer(elasticURL, indexName string, rebuild, cleanup bool) indexer.Indexer {
-	return &ContactIndexer{
-		BaseIndexer: indexer.BaseIndexer{ElasticURL: elasticURL, IndexName: indexName, Rebuild: rebuild, Cleanup: cleanup},
-	}
-}
-
-func (i *ContactIndexer) Index(db *sql.DB) error {
-	var err error
-
-	// find our physical index
-	physicalIndexes := indexer.FindPhysicalIndexes(i.ElasticURL, i.IndexName)
-	log.WithField("physicalIndexes", physicalIndexes).WithField("index", i.IndexName).Debug("found physical indexes")
-
-	physicalIndex := ""
-	if len(physicalIndexes) > 0 {
-		physicalIndex = physicalIndexes[0]
-	}
-
-	// whether we need to remap our alias after building
-	remapAlias := false
-
-	// doesn't exist or we are rebuilding, create it
-	if physicalIndex == "" || i.Rebuild {
-		physicalIndex, err = indexer.CreateNewIndex(i.ElasticURL, i.IndexName, contacts.IndexSettings)
-		if err != nil {
-			return errors.Wrap(err, "error creating new index")
-		}
-		log.WithField("index", i.IndexName).WithField("physicalIndex", physicalIndex).Info("created new physical index")
-		remapAlias = true
-	}
-
-	lastModified, err := indexer.GetLastModified(i.ElasticURL, physicalIndex)
-	if err != nil {
-		return errors.Wrap(err, "error finding last modified")
-	}
-
-	log.WithField("last_modified", lastModified).WithField("index", physicalIndex).Info("indexing newer than last modified")
-
-	// now index our docs
-	start := time.Now()
-	indexed, deleted, err := indexer.IndexContacts(db, i.ElasticURL, physicalIndex, lastModified.Add(-5*time.Second))
-	if err != nil {
-		return errors.Wrap(err, "error indexing documents")
-	}
-
-	i.UpdateStats(indexed, deleted, time.Since(start))
-
-	// if the index didn't previously exist or we are rebuilding, remap to our alias
-	if remapAlias {
-		err := indexer.MapIndexAlias(i.ElasticURL, i.IndexName, physicalIndex)
-		if err != nil {
-			return errors.Wrap(err, "error remapping alias")
-		}
-		remapAlias = false
-	}
-
-	// cleanup our aliases if appropriate
-	if i.Cleanup {
-		err := indexer.CleanupIndexes(i.ElasticURL, i.IndexName)
-		if err != nil {
-			return errors.Wrap(err, "error cleaning up old indexes")
-		}
-	}
-
-	return nil
 }

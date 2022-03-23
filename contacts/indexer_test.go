@@ -1,4 +1,4 @@
-package indexer
+package contacts_test
 
 import (
 	"context"
@@ -7,12 +7,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 
 	_ "github.com/lib/pq"
+	indexer "github.com/nyaruka/rp-indexer"
 	"github.com/nyaruka/rp-indexer/contacts"
 	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
@@ -24,7 +24,7 @@ const elasticURL = "http://localhost:9200"
 const indexName = "rp_elastic_test"
 
 func setup(t *testing.T) (*sql.DB, *elastic.Client) {
-	testDB, err := ioutil.ReadFile("testdb.sql")
+	testDB, err := ioutil.ReadFile("../testdb.sql")
 	require.NoError(t, err)
 
 	db, err := sql.Open("postgres", "postgres://nyaruka:nyaruka@localhost:5432/elastic_test?sslmode=disable")
@@ -36,7 +36,7 @@ func setup(t *testing.T) (*sql.DB, *elastic.Client) {
 	client, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetTraceLog(log.New(os.Stdout, "", log.LstdFlags)), elastic.SetSniff(false))
 	require.NoError(t, err)
 
-	existing := FindPhysicalIndexes(elasticURL, indexName)
+	existing := indexer.FindPhysicalIndexes(elasticURL, indexName)
 	for _, idx := range existing {
 		_, err = client.DeleteIndex(idx).Do(context.Background())
 		require.NoError(t, err)
@@ -59,14 +59,14 @@ func assertQuery(t *testing.T, client *elastic.Client, index string, query elast
 	}
 }
 
-func TestContacts(t *testing.T) {
-	batchSize = 4
+func TestIndexing(t *testing.T) {
+	contacts.BatchSize = 4
 	db, client := setup(t)
 
-	physicalName, err := CreateNewIndex(elasticURL, indexName, contacts.IndexSettings)
+	physicalName, err := indexer.CreateNewIndex(elasticURL, indexName, contacts.IndexSettings)
 	assert.NoError(t, err)
 
-	added, deleted, err := IndexContacts(db, elasticURL, physicalName, time.Time{})
+	added, deleted, err := contacts.IndexModified(db, elasticURL, physicalName, time.Time{})
 	assert.NoError(t, err)
 	assert.Equal(t, 9, added)
 	assert.Equal(t, 0, deleted)
@@ -237,12 +237,12 @@ func TestContacts(t *testing.T) {
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1, 2})
 	assertQuery(t, client, physicalName, elastic.NewMatchQuery("groups", "4c016340-468d-4675-a974-15cb7a45a5ab"), []int64{})
 
-	lastModified, err := GetLastModified(elasticURL, physicalName)
+	lastModified, err := indexer.GetLastModified(elasticURL, physicalName)
 	assert.NoError(t, err)
 	assert.Equal(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), lastModified.In(time.UTC))
 
 	// map our index over
-	err = MapIndexAlias(elasticURL, indexName, physicalName)
+	err = indexer.MapIndexAlias(elasticURL, indexName, physicalName)
 	assert.NoError(t, err)
 	time.Sleep(5 * time.Second)
 
@@ -250,20 +250,20 @@ func TestContacts(t *testing.T) {
 	assertQuery(t, client, indexName, elastic.NewMatchQuery("name", "john"), []int64{4})
 
 	// look up our mapping
-	physical := FindPhysicalIndexes(elasticURL, indexName)
+	physical := indexer.FindPhysicalIndexes(elasticURL, indexName)
 	assert.Equal(t, physicalName, physical[0])
 
 	// rebuild again
-	newIndex, err := CreateNewIndex(elasticURL, indexName, contacts.IndexSettings)
+	newIndex, err := indexer.CreateNewIndex(elasticURL, indexName, contacts.IndexSettings)
 	assert.NoError(t, err)
 
-	added, deleted, err = IndexContacts(db, elasticURL, newIndex, time.Time{})
+	added, deleted, err = contacts.IndexModified(db, elasticURL, newIndex, time.Time{})
 	assert.NoError(t, err)
 	assert.Equal(t, 9, added)
 	assert.Equal(t, 0, deleted)
 
 	// remap again
-	err = MapIndexAlias(elasticURL, indexName, newIndex)
+	err = indexer.MapIndexAlias(elasticURL, indexName, newIndex)
 	assert.NoError(t, err)
 	time.Sleep(5 * time.Second)
 
@@ -273,7 +273,7 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
 
 	// cleanup our indexes, will remove our original index
-	err = CleanupIndexes(elasticURL, indexName)
+	err = indexer.CleanupIndexes(elasticURL, indexName)
 	assert.NoError(t, err)
 
 	// old physical index should be gone
@@ -285,12 +285,13 @@ func TestContacts(t *testing.T) {
 	assertQuery(t, client, newIndex, elastic.NewMatchQuery("name", "john"), []int64{4})
 
 	// update our database, removing one contact, updating another
-	dbUpdate, err := ioutil.ReadFile("testdb_update.sql")
-	assert.NoError(t, err)
-	_, err = db.Exec(string(dbUpdate))
+	_, err = db.Exec(`
+	DELETE FROM contacts_contactgroup_contacts WHERE id = 3;
+	UPDATE contacts_contact SET name = 'John Deer', modified_on = '2020-08-20 14:00:00+00' where id = 2;
+	UPDATE contacts_contact SET is_active = FALSE, modified_on = '2020-08-22 15:00:00+00' where id = 4;`)
 	assert.NoError(t, err)
 
-	added, deleted, err = IndexContacts(db, elasticURL, indexName, lastModified)
+	added, deleted, err = contacts.IndexModified(db, elasticURL, indexName, lastModified)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, added)
 	assert.Equal(t, 1, deleted)
@@ -302,86 +303,4 @@ func TestContacts(t *testing.T) {
 
 	// 3 is no longer in our group
 	assertQuery(t, client, indexName, elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1})
-
-}
-func TestRetryServer(t *testing.T) {
-	responseCounter := 0
-	responses := []func(w http.ResponseWriter, r *http.Request){
-		func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Length", "5")
-		},
-		func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Length", "1")
-		},
-		func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Length", "1")
-		},
-		func(w http.ResponseWriter, r *http.Request) {
-			resp := `{
-				"took": 1,
-				"timed_out": false,
-				"_shards": {
-				  "total": 2,
-				  "successful": 2,
-				  "skipped": 0,
-				  "failed": 0
-				},
-				"hits": {
-				  "total": 1,
-				  "max_score": null,
-				  "hits": [
-					{
-					  "_index": "rp_elastic_test_2020_08_14_1",
-					  "_type": "_doc",
-					  "_id": "1",
-					  "_score": null,
-					  "_routing": "1",
-					  "_source": {
-						"id": 1,
-						"org_id": 1,
-						"uuid": "c7a2dd87-a80e-420b-8431-ca48d422e924",
-						"name": null,
-						"language": "eng",
-						"is_active": true,
-						"created_on": "2017-11-10T16:11:59.890662-05:00",
-						"modified_on": "2017-11-10T16:11:59.890662-05:00",
-						"last_seen_on": "2020-08-04T21:11:00-04:00",
-						"modified_on_mu": 1.510348319890662e15,
-						"urns": [
-						  {
-							"scheme": "tel",
-							"path": "+12067791111"
-						  },
-						  {
-							"scheme": "tel",
-							"path": "+12067792222"
-						  }
-						],
-						"fields": [
-						  {
-							"text": "the rock",
-							"field": "17103bb1-1b48-4b70-92f7-1f6b73bd3488"
-						  }
-						],
-						"groups": [
-						  "4ea0f313-2f62-4e57-bdf0-232b5191dd57",
-						  "529bac39-550a-4d6f-817c-1833f3449007"
-						]
-					  },
-					  "sort": [1]
-					}
-				  ]
-				}
-			  }`
-
-			w.Write([]byte(resp))
-		},
-	}
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responses[responseCounter](w, r)
-		responseCounter++
-	}))
-	defer ts.Close()
-	FindPhysicalIndexes(ts.URL, "rp_elastic_test")
-	require.Equal(t, responseCounter, 4)
 }

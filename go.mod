@@ -9,6 +9,7 @@ require (
 	github.com/nyaruka/ezconf v0.2.1
 	github.com/nyaruka/gocommon v1.3.0
 	github.com/olivere/elastic/v7 v7.0.22
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8 // indirect

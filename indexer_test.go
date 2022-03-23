@@ -13,6 +13,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/nyaruka/rp-indexer/contacts"
 	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -58,11 +59,11 @@ func assertQuery(t *testing.T, client *elastic.Client, index string, query elast
 	}
 }
 
-func TestIndexing(t *testing.T) {
+func TestContacts(t *testing.T) {
 	batchSize = 4
 	db, client := setup(t)
 
-	physicalName, err := CreateNewIndex(elasticURL, indexName)
+	physicalName, err := CreateNewIndex(elasticURL, indexName, contacts.IndexSettings)
 	assert.NoError(t, err)
 
 	added, deleted, err := IndexContacts(db, elasticURL, physicalName, time.Time{})
@@ -253,7 +254,7 @@ func TestIndexing(t *testing.T) {
 	assert.Equal(t, physicalName, physical[0])
 
 	// rebuild again
-	newIndex, err := CreateNewIndex(elasticURL, indexName)
+	newIndex, err := CreateNewIndex(elasticURL, indexName, contacts.IndexSettings)
 	assert.NoError(t, err)
 
 	added, deleted, err = IndexContacts(db, elasticURL, newIndex, time.Time{})

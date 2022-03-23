@@ -24,7 +24,7 @@ var batchSize = 500
 // that index to `contacts`.
 //
 // If the day-specific name already exists, we append a .1 or .2 to the name.
-func CreateNewIndex(url string, alias string) (string, error) {
+func CreateNewIndex(url, alias string, settings json.RawMessage) (string, error) {
 	// create our day-specific name
 	physicalIndex := fmt.Sprintf("%s_%s", alias, time.Now().Format("2006_01_02"))
 	idx := 0
@@ -47,7 +47,7 @@ func CreateNewIndex(url string, alias string) (string, error) {
 
 	// initialize our index
 	createURL := fmt.Sprintf("%s/%s?include_type_name=true", url, physicalIndex)
-	_, err := MakeJSONRequest(http.MethodPut, createURL, contacts.IndexSettings, nil)
+	_, err := MakeJSONRequest(http.MethodPut, createURL, settings, nil)
 	if err != nil {
 		return "", err
 	}

@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	indexer "github.com/nyaruka/rp-indexer"
+	"github.com/nyaruka/rp-indexer/contacts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -87,6 +87,9 @@ func TestRetryServer(t *testing.T) {
 		responseCounter++
 	}))
 	defer ts.Close()
-	indexer.FindPhysicalIndexes(ts.URL, "rp_elastic_test")
+
+	ci := contacts.NewIndexer("rp_elastic_test", ts.URL)
+	ci.FindPhysicalIndexes()
+
 	require.Equal(t, responseCounter, 4)
 }

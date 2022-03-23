@@ -36,7 +36,9 @@ func setup(t *testing.T) (*sql.DB, *elastic.Client) {
 	client, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetTraceLog(log.New(os.Stdout, "", log.LstdFlags)), elastic.SetSniff(false))
 	require.NoError(t, err)
 
-	existing := indexer.FindPhysicalIndexes(elasticURL, indexName)
+	ci := contacts.NewIndexer(indexName, elasticURL)
+
+	existing := ci.FindPhysicalIndexes()
 	for _, idx := range existing {
 		_, err = client.DeleteIndex(idx).Do(context.Background())
 		require.NoError(t, err)
@@ -59,14 +61,16 @@ func assertQuery(t *testing.T, client *elastic.Client, index string, query elast
 	}
 }
 
-func TestIndexing(t *testing.T) {
+func TestIndexer(t *testing.T) {
 	contacts.BatchSize = 4
 	db, client := setup(t)
 
-	physicalName, err := indexer.CreateNewIndex(elasticURL, indexName, contacts.IndexSettings)
+	ci := contacts.NewIndexer(indexName, elasticURL)
+
+	physicalName, err := ci.CreateNewIndex(contacts.IndexSettings)
 	assert.NoError(t, err)
 
-	added, deleted, err := contacts.IndexModified(db, elasticURL, physicalName, time.Time{})
+	added, deleted, err := ci.IndexModified(db, physicalName, time.Time{})
 	assert.NoError(t, err)
 	assert.Equal(t, 9, added)
 	assert.Equal(t, 0, deleted)
@@ -242,7 +246,7 @@ func TestIndexing(t *testing.T) {
 	assert.Equal(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), lastModified.In(time.UTC))
 
 	// map our index over
-	err = indexer.MapIndexAlias(elasticURL, indexName, physicalName)
+	err = ci.UpdateAlias(physicalName)
 	assert.NoError(t, err)
 	time.Sleep(5 * time.Second)
 
@@ -250,20 +254,20 @@ func TestIndexing(t *testing.T) {
 	assertQuery(t, client, indexName, elastic.NewMatchQuery("name", "john"), []int64{4})
 
 	// look up our mapping
-	physical := indexer.FindPhysicalIndexes(elasticURL, indexName)
+	physical := ci.FindPhysicalIndexes()
 	assert.Equal(t, physicalName, physical[0])
 
 	// rebuild again
-	newIndex, err := indexer.CreateNewIndex(elasticURL, indexName, contacts.IndexSettings)
+	newIndex, err := ci.CreateNewIndex(contacts.IndexSettings)
 	assert.NoError(t, err)
 
-	added, deleted, err = contacts.IndexModified(db, elasticURL, newIndex, time.Time{})
+	added, deleted, err = ci.IndexModified(db, newIndex, time.Time{})
 	assert.NoError(t, err)
 	assert.Equal(t, 9, added)
 	assert.Equal(t, 0, deleted)
 
 	// remap again
-	err = indexer.MapIndexAlias(elasticURL, indexName, newIndex)
+	err = ci.UpdateAlias(newIndex)
 	assert.NoError(t, err)
 	time.Sleep(5 * time.Second)
 
@@ -273,7 +277,7 @@ func TestIndexing(t *testing.T) {
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
 
 	// cleanup our indexes, will remove our original index
-	err = indexer.CleanupIndexes(elasticURL, indexName)
+	err = ci.CleanupIndexes()
 	assert.NoError(t, err)
 
 	// old physical index should be gone
@@ -291,7 +295,7 @@ func TestIndexing(t *testing.T) {
 	UPDATE contacts_contact SET is_active = FALSE, modified_on = '2020-08-22 15:00:00+00' where id = 4;`)
 	assert.NoError(t, err)
 
-	added, deleted, err = contacts.IndexModified(db, elasticURL, indexName, lastModified)
+	added, deleted, err = ci.IndexModified(db, indexName, lastModified)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, added)
 	assert.Equal(t, 1, deleted)

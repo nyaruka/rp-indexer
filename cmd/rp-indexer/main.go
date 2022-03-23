@@ -64,10 +64,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ci := contacts.NewIndexer(config.ElasticURL, config.Index, config.Rebuild, config.Cleanup)
+	ci := contacts.NewIndexer(config.ElasticURL, config.Index)
 
 	for {
-		err := ci.Index(db)
+		err := ci.Index(db, config.Rebuild, config.Cleanup)
 
 		if err != nil {
 			if config.Rebuild {

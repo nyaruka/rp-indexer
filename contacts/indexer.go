@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	indexer "github.com/nyaruka/rp-indexer"
@@ -16,7 +15,6 @@ import (
 
 var BatchSize = 500
 
-// settings and mappings for our index
 //go:embed index_settings.json
 var IndexSettings json.RawMessage
 
@@ -26,22 +24,23 @@ const indexCommand = `{ "index": { "_id": %d, "_type": "_doc", "version": %d, "v
 // deletes a contact
 const deleteCommand = `{ "delete" : { "_id": %d, "_type": "_doc", "version": %d, "version_type": "external", "routing": %d} }`
 
-type ContactIndexer struct {
+// ContactIndexer is an indexer for contacts
+type Indexer struct {
 	indexer.BaseIndexer
 }
 
-func NewIndexer(name, elasticURL string, rebuild, cleanup bool) indexer.Indexer {
-	return &ContactIndexer{
-		BaseIndexer: indexer.NewBaseIndexer(name, elasticURL, rebuild, cleanup),
+// NewIndexer creates a new contact indexer
+func NewIndexer(name, elasticURL string) *Indexer {
+	return &Indexer{
+		BaseIndexer: indexer.NewBaseIndexer(name, elasticURL),
 	}
 }
 
-func (i *ContactIndexer) Index(db *sql.DB) error {
+func (i *Indexer) Index(db *sql.DB, rebuild, cleanup bool) error {
 	var err error
 
 	// find our physical index
-	physicalIndexes := indexer.FindPhysicalIndexes(i.ElasticURL, i.Name())
-	logrus.WithField("physicalIndexes", physicalIndexes).WithField("indexer", i.Name()).Debug("found physical indexes")
+	physicalIndexes := i.FindPhysicalIndexes()
 
 	physicalIndex := ""
 	if len(physicalIndexes) > 0 {
@@ -52,12 +51,12 @@ func (i *ContactIndexer) Index(db *sql.DB) error {
 	remapAlias := false
 
 	// doesn't exist or we are rebuilding, create it
-	if physicalIndex == "" || i.Rebuild {
-		physicalIndex, err = indexer.CreateNewIndex(i.ElasticURL, i.Name(), IndexSettings)
+	if physicalIndex == "" || rebuild {
+		physicalIndex, err = i.CreateNewIndex(IndexSettings)
 		if err != nil {
 			return errors.Wrap(err, "error creating new index")
 		}
-		logrus.WithField("indexer", i.Name()).WithField("physicalIndex", physicalIndex).Info("created new physical index")
+		logrus.WithField("indexer", i.Name()).WithField("index", physicalIndex).Info("created new physical index")
 		remapAlias = true
 	}
 
@@ -66,20 +65,20 @@ func (i *ContactIndexer) Index(db *sql.DB) error {
 		return errors.Wrap(err, "error finding last modified")
 	}
 
-	logrus.WithField("last_modified", lastModified).WithField("index", physicalIndex).Info("indexing newer than last modified")
+	logrus.WithField("indexer", i.Name()).WithField("index", physicalIndex).WithField("last_modified", lastModified).Info("indexing newer than last modified")
 
 	// now index our docs
 	start := time.Now()
-	indexed, deleted, err := IndexModified(db, i.ElasticURL, physicalIndex, lastModified.Add(-5*time.Second))
+	indexed, deleted, err := i.IndexModified(db, physicalIndex, lastModified.Add(-5*time.Second))
 	if err != nil {
 		return errors.Wrap(err, "error indexing documents")
 	}
 
-	i.UpdateStats(indexed, deleted, time.Since(start))
+	i.RecordComplete(indexed, deleted, time.Since(start))
 
 	// if the index didn't previously exist or we are rebuilding, remap to our alias
 	if remapAlias {
-		err := indexer.MapIndexAlias(i.ElasticURL, i.Name(), physicalIndex)
+		err := i.UpdateAlias(physicalIndex)
 		if err != nil {
 			return errors.Wrap(err, "error remapping alias")
 		}
@@ -87,8 +86,8 @@ func (i *ContactIndexer) Index(db *sql.DB) error {
 	}
 
 	// cleanup our aliases if appropriate
-	if i.Cleanup {
-		err := indexer.CleanupIndexes(i.ElasticURL, i.Name())
+	if cleanup {
+		err := i.CleanupIndexes()
 		if err != nil {
 			return errors.Wrap(err, "error cleaning up old indexes")
 		}
@@ -98,7 +97,7 @@ func (i *ContactIndexer) Index(db *sql.DB) error {
 }
 
 // IndexModified queries and indexes all contacts with a lastModified greater than or equal to the passed in time
-func IndexModified(db *sql.DB, elasticURL string, index string, lastModified time.Time) (int, int, error) {
+func (i *Indexer) IndexModified(db *sql.DB, index string, lastModified time.Time) (int, int, error) {
 	batch := &bytes.Buffer{}
 	createdCount, deletedCount, processedCount := 0, 0, 0
 
@@ -153,7 +152,7 @@ func IndexModified(db *sql.DB, elasticURL string, index string, lastModified tim
 
 			// write to elastic search in batches
 			if queryCount%BatchSize == 0 {
-				created, deleted, err := indexBatch(elasticURL, index, batch.Bytes())
+				created, deleted, err := i.IndexBatch(index, batch.Bytes())
 				if err != nil {
 					return 0, 0, err
 				}
@@ -166,7 +165,7 @@ func IndexModified(db *sql.DB, elasticURL string, index string, lastModified tim
 		}
 
 		if batch.Len() > 0 {
-			created, deleted, err := indexBatch(elasticURL, index, batch.Bytes())
+			created, deleted, err := i.IndexBatch(index, batch.Bytes())
 			if err != nil {
 				return 0, 0, err
 			}
@@ -193,43 +192,6 @@ func IndexModified(db *sql.DB, elasticURL string, index string, lastModified tim
 
 		rows.Close()
 	}
-
-	return createdCount, deletedCount, nil
-}
-
-// indexes the batch of contacts
-func indexBatch(elasticURL string, index string, batch []byte) (int, int, error) {
-	response := indexer.IndexResponse{}
-	indexURL := fmt.Sprintf("%s/%s/_bulk", elasticURL, index)
-
-	_, err := indexer.MakeJSONRequest(http.MethodPut, indexURL, batch, &response)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	createdCount, deletedCount, conflictedCount := 0, 0, 0
-	for _, item := range response.Items {
-		if item.Index.ID != "" {
-			logrus.WithField("id", item.Index.ID).WithField("status", item.Index.Status).Debug("index response")
-			if item.Index.Status == 200 || item.Index.Status == 201 {
-				createdCount++
-			} else if item.Index.Status == 409 {
-				conflictedCount++
-			} else {
-				logrus.WithField("id", item.Index.ID).WithField("batch", batch).WithField("result", item.Index.Result).Error("error indexing contact")
-			}
-		} else if item.Delete.ID != "" {
-			logrus.WithField("id", item.Index.ID).WithField("status", item.Index.Status).Debug("delete response")
-			if item.Delete.Status == 200 {
-				deletedCount++
-			} else if item.Delete.Status == 409 {
-				conflictedCount++
-			}
-		} else {
-			logrus.Error("unparsed item in response")
-		}
-	}
-	logrus.WithField("created", createdCount).WithField("deleted", deletedCount).WithField("conflicted", conflictedCount).Debug("indexed batch")
 
 	return createdCount, deletedCount, nil
 }

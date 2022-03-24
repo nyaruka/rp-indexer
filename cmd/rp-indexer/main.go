@@ -8,7 +8,7 @@ import (
 	"github.com/evalphobia/logrus_sentry"
 	_ "github.com/lib/pq"
 	"github.com/nyaruka/ezconf"
-	"github.com/nyaruka/rp-indexer/contacts"
+	"github.com/nyaruka/rp-indexer/indexers"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -64,7 +64,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ci := contacts.NewIndexer(config.ElasticURL, config.Index, 500)
+	ci := indexers.NewContactIndexer(config.ElasticURL, config.Index, 500)
 
 	for {
 		_, err := ci.Index(db, config.Rebuild, config.Cleanup)

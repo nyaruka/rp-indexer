@@ -1,94 +1,19 @@
-package contacts_test
+package indexers_test
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"os"
-	"sort"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/nyaruka/gocommon/jsonx"
-	indexer "github.com/nyaruka/rp-indexer"
-	"github.com/nyaruka/rp-indexer/contacts"
+	"github.com/nyaruka/rp-indexer/indexers"
 	"github.com/olivere/elastic/v7"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const elasticURL = "http://localhost:9200"
-const aliasName = "indexer_test"
-
-func setup(t *testing.T) (*sql.DB, *elastic.Client) {
-	testDB, err := ioutil.ReadFile("../testdb.sql")
-	require.NoError(t, err)
-
-	db, err := sql.Open("postgres", "postgres://nyaruka:nyaruka@localhost:5432/elastic_test?sslmode=disable")
-	require.NoError(t, err)
-
-	_, err = db.Exec(string(testDB))
-	require.NoError(t, err)
-
-	es, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetTraceLog(log.New(os.Stdout, "", log.LstdFlags)), elastic.SetSniff(false))
-	require.NoError(t, err)
-
-	// delete all indexes with our alias prefix
-	existing, err := es.IndexNames()
-	require.NoError(t, err)
-
-	for _, name := range existing {
-		if strings.HasPrefix(name, aliasName) {
-			_, err = es.DeleteIndex(name).Do(context.Background())
-			require.NoError(t, err)
-		}
-	}
-
-	logrus.SetLevel(logrus.DebugLevel)
-
-	return db, es
-}
-
-func assertQuery(t *testing.T, client *elastic.Client, query elastic.Query, expected []int64, msgAndArgs ...interface{}) {
-	results, err := client.Search().Index(aliasName).Query(query).Sort("id", true).Pretty(true).Do(context.Background())
-	assert.NoError(t, err)
-
-	actual := make([]int64, len(results.Hits.Hits))
-	for h, hit := range results.Hits.Hits {
-		asInt, _ := strconv.Atoi(hit.Id)
-		actual[h] = int64(asInt)
-	}
-
-	assert.Equal(t, expected, actual, msgAndArgs...)
-}
-
-func assertIndexesWithPrefix(t *testing.T, es *elastic.Client, prefix string, expected []string) {
-	all, err := es.IndexNames()
-	require.NoError(t, err)
-
-	actual := []string{}
-	for _, name := range all {
-		if strings.HasPrefix(name, prefix) {
-			actual = append(actual, name)
-		}
-	}
-	sort.Strings(actual)
-	assert.Equal(t, expected, actual)
-}
-
-func assertIndexerStats(t *testing.T, ix indexer.Indexer, expectedIndexed, expectedDeleted int64) {
-	actualIndexed, actualDeleted, _ := ix.Stats()
-	assert.Equal(t, expectedIndexed, actualIndexed, "indexed mismatch")
-	assert.Equal(t, expectedDeleted, actualDeleted, "deleted mismatch")
-}
-
-var queryTests = []struct {
+var contactQueryTests = []struct {
 	query    elastic.Query
 	expected []int64
 }{
@@ -256,10 +181,10 @@ var queryTests = []struct {
 	{elastic.NewMatchQuery("groups", "4c016340-468d-4675-a974-15cb7a45a5ab"), []int64{}},
 }
 
-func TestIndexer(t *testing.T) {
+func TestContacts(t *testing.T) {
 	db, es := setup(t)
 
-	ix1 := contacts.NewIndexer(elasticURL, aliasName, 4)
+	ix1 := indexers.NewContactIndexer(elasticURL, aliasName, 4)
 	assert.Equal(t, "indexer_test", ix1.Name())
 
 	expectedIndexName := fmt.Sprintf("indexer_test_%s", time.Now().Format("2006_01_02"))
@@ -273,7 +198,7 @@ func TestIndexer(t *testing.T) {
 	assertIndexerStats(t, ix1, 9, 0)
 	assertIndexesWithPrefix(t, es, aliasName, []string{expectedIndexName})
 
-	for _, tc := range queryTests {
+	for _, tc := range contactQueryTests {
 		src, _ := tc.query.Source()
 		assertQuery(t, es, tc.query, tc.expected, "query mismatch for %s", string(jsonx.MustMarshal(src)))
 	}
@@ -311,7 +236,7 @@ func TestIndexer(t *testing.T) {
 	require.NoError(t, err)
 
 	// and simulate another indexer doing a parallel rebuild
-	ix2 := contacts.NewIndexer(elasticURL, aliasName, 4)
+	ix2 := indexers.NewContactIndexer(elasticURL, aliasName, 4)
 
 	indexName2, err := ix2.Index(db, true, false)
 	assert.NoError(t, err)
@@ -327,7 +252,7 @@ func TestIndexer(t *testing.T) {
 	assertQuery(t, es, elastic.NewMatchQuery("name", "eric"), []int64{2})
 
 	// simulate another indexer doing a parallel rebuild with cleanup
-	ix3 := contacts.NewIndexer(elasticURL, aliasName, 4)
+	ix3 := indexers.NewContactIndexer(elasticURL, aliasName, 4)
 	indexName3, err := ix3.Index(db, true, true)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_2", indexName3) // new index used

@@ -1,4 +1,4 @@
-package indexer
+package utils
 
 import (
 	"bytes"
@@ -44,8 +44,8 @@ func shouldRetry(request *http.Request, response *http.Response, withDelay time.
 	return false
 }
 
-// utility function to make a JSON request, optionally decoding the response into the passed in struct
-func makeJSONRequest(method string, url string, body []byte, jsonStruct interface{}) (*http.Response, error) {
+// MakeJSONRequest is a utility function to make a JSON request, optionally decoding the response into the passed in struct
+func MakeJSONRequest(method string, url string, body []byte, jsonStruct interface{}) (*http.Response, error) {
 	req, _ := httpx.NewRequest(method, url, bytes.NewReader(body), map[string]string{"Content-Type": "application/json"})
 	resp, err := httpx.Do(http.DefaultClient, req, retryConfig, nil)
 

@@ -20,21 +20,24 @@ const indexCommand = `{ "index": { "_id": %d, "_type": "_doc", "version": %d, "v
 // deletes a document
 const deleteCommand = `{ "delete" : { "_id": %d, "_type": "_doc", "version": %d, "version_type": "external", "routing": %d} }`
 
+type Stats struct {
+	Indexed int64         // total number of documents indexed
+	Deleted int64         // total number of documents deleted
+	Elapsed time.Duration // total time spent actually indexing
+}
+
 // Indexer is base interface for indexers
 type Indexer interface {
 	Name() string
 	Index(db *sql.DB, rebuild, cleanup bool) (string, error)
-	Stats() (int64, int64, time.Duration)
+	Stats() Stats
 }
 
 type baseIndexer struct {
 	elasticURL string
 	name       string // e.g. contacts, used as the alias
 
-	// statistics
-	indexedTotal int64
-	deletedTotal int64
-	elapsedTotal time.Duration
+	stats Stats
 }
 
 func newBaseIndexer(elasticURL, name string) baseIndexer {
@@ -45,8 +48,8 @@ func (i *baseIndexer) Name() string {
 	return i.name
 }
 
-func (i *baseIndexer) Stats() (int64, int64, time.Duration) {
-	return i.indexedTotal, i.deletedTotal, i.elapsedTotal
+func (i *baseIndexer) Stats() Stats {
+	return i.stats
 }
 
 func (i *baseIndexer) log() *logrus.Entry {
@@ -55,9 +58,9 @@ func (i *baseIndexer) log() *logrus.Entry {
 
 // records a complete index and updates statistics
 func (i *baseIndexer) recordComplete(indexed, deleted int, elapsed time.Duration) {
-	i.indexedTotal += int64(indexed)
-	i.deletedTotal += int64(deleted)
-	i.elapsedTotal += elapsed
+	i.stats.Indexed += int64(indexed)
+	i.stats.Deleted += int64(deleted)
+	i.stats.Elapsed += elapsed
 
 	i.log().WithField("indexed", indexed).WithField("deleted", deleted).WithField("elapsed", elapsed).Info("completed indexing")
 }

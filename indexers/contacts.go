@@ -60,7 +60,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error
 		return "", errors.Wrap(err, "error finding last modified")
 	}
 
-	i.log().WithField("index", physicalIndex).WithField("last_modified", lastModified).Info("indexing newer than last modified")
+	i.log().WithField("index", physicalIndex).WithField("last_modified", lastModified).Debug("indexing newer than last modified")
 
 	// now index our docs
 	start := time.Now()
@@ -243,7 +243,7 @@ func (i *ContactIndexer) indexModified(db *sql.DB, index string, lastModified ti
 		elapsed := time.Since(start)
 		rate := float32(processedCount) / (float32(elapsed) / float32(time.Second))
 
-		i.log().WithField("index", index).WithFields(logrus.Fields{"rate": int(rate), "added": createdCount, "deleted": deletedCount, "elapsed": elapsed}).Info("indexed contact batch")
+		i.log().WithField("index", index).WithFields(logrus.Fields{"rate": int(rate), "added": createdCount, "deleted": deletedCount, "elapsed": elapsed}).Debug("indexed contact batch")
 	}
 
 	return createdCount, deletedCount, nil

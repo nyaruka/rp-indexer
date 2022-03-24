@@ -99,8 +99,17 @@ func (d *Daemon) reportStats() {
 		stats := ix.Stats()
 		prev := d.prevStats[ix]
 
-		metrics[ix.Name()+"_indexed"] = float64(stats.Indexed - prev.Indexed)
-		metrics[ix.Name()+"_deleted"] = float64(stats.Deleted - prev.Deleted)
+		indexedInPeriod := stats.Indexed - prev.Indexed
+		deletedInPeriod := stats.Deleted - prev.Deleted
+		elapsedInPeriod := stats.Elapsed - prev.Elapsed
+		rateInPeriod := float64(0)
+		if indexedInPeriod > 0 && elapsedInPeriod > 0 {
+			rateInPeriod = float64(indexedInPeriod) / (float64(elapsedInPeriod) / float64(time.Second))
+		}
+
+		metrics[ix.Name()+"_indexed"] = float64(indexedInPeriod)
+		metrics[ix.Name()+"_deleted"] = float64(deletedInPeriod)
+		metrics[ix.Name()+"_rate"] = rateInPeriod
 
 		d.prevStats[ix] = stats
 	}

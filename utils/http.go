@@ -1,4 +1,4 @@
-package indexer
+package utils
 
 import (
 	"bytes"
@@ -46,9 +46,7 @@ func shouldRetry(request *http.Request, response *http.Response, withDelay time.
 
 // MakeJSONRequest is a utility function to make a JSON request, optionally decoding the response into the passed in struct
 func MakeJSONRequest(method string, url string, body []byte, jsonStruct interface{}) (*http.Response, error) {
-	req, _ := http.NewRequest(method, url, bytes.NewReader(body))
-	req.Header.Add("Content-Type", "application/json")
-
+	req, _ := httpx.NewRequest(method, url, bytes.NewReader(body), map[string]string{"Content-Type": "application/json"})
 	resp, err := httpx.Do(http.DefaultClient, req, retryConfig, nil)
 
 	l := log.WithField("url", url).WithField("method", method).WithField("request", body)
@@ -87,64 +85,3 @@ func MakeJSONRequest(method string, url string, body []byte, jsonStruct interfac
 	l.Debug("ES request successful")
 	return resp, nil
 }
-
-// adds an alias for an index
-type addAliasCommand struct {
-	Add struct {
-		Index string `json:"index"`
-		Alias string `json:"alias"`
-	} `json:"add"`
-}
-
-// removes an alias for an index
-type removeAliasCommand struct {
-	Remove struct {
-		Index string `json:"index"`
-		Alias string `json:"alias"`
-	} `json:"remove"`
-}
-
-// our top level command for remapping aliases
-type aliasCommand struct {
-	Actions []interface{} `json:"actions"`
-}
-
-// our response for finding the most recent contact
-type queryResponse struct {
-	Hits struct {
-		Total struct {
-			Value int `json:"value"`
-		} `json:"total"`
-		Hits []struct {
-			Source struct {
-				ID         int64     `json:"id"`
-				ModifiedOn time.Time `json:"modified_on"`
-			} `json:"_source"`
-		} `json:"hits"`
-	} `json:"hits"`
-}
-
-// our response for indexing contacts
-type indexResponse struct {
-	Items []struct {
-		Index struct {
-			ID     string `json:"_id"`
-			Status int    `json:"status"`
-			Result string `json:"result"`
-		} `json:"index"`
-		Delete struct {
-			ID     string `json:"_id"`
-			Status int    `json:"status"`
-		} `json:"delete"`
-	} `json:"items"`
-}
-
-// our response for our index health
-type healthResponse struct {
-	Indices map[string]struct {
-		Status string `json:"status"`
-	} `json:"indices"`
-}
-
-// our response for figuring out the physical index for an alias
-type infoResponse map[string]interface{}

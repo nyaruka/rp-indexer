@@ -8,7 +8,7 @@ import (
 	"github.com/evalphobia/logrus_sentry"
 	_ "github.com/lib/pq"
 	"github.com/nyaruka/ezconf"
-	indexer "github.com/nyaruka/rp-indexer"
+	"github.com/nyaruka/rp-indexer/indexers"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -54,7 +54,7 @@ func main() {
 		hook.StacktraceConfiguration.Skip = 4
 		hook.StacktraceConfiguration.Context = 5
 		if err != nil {
-			log.Fatalf("Invalid sentry DSN: '%s': %s", config.SentryDSN, err)
+			log.Fatalf("invalid sentry DSN: '%s': %s", config.SentryDSN, err)
 		}
 		log.StandardLogger().Hooks.Add(hook)
 	}
@@ -64,80 +64,25 @@ func main() {
 		log.Fatal(err)
 	}
 
+	ci := indexers.NewContactIndexer(config.ElasticURL, config.Index, 500)
+
 	for {
-		// find our physical index
-		physicalIndexes := indexer.FindPhysicalIndexes(config.ElasticURL, config.Index)
-		log.WithField("physicalIndexes", physicalIndexes).WithField("index", config.Index).Debug("found physical indexes")
+		_, err := ci.Index(db, config.Rebuild, config.Cleanup)
 
-		physicalIndex := ""
-		if len(physicalIndexes) > 0 {
-			physicalIndex = physicalIndexes[0]
-		}
-
-		// whether we need to remap our alias after building
-		remapAlias := false
-
-		// doesn't exist or we are rebuilding, create it
-		if physicalIndex == "" || config.Rebuild {
-			physicalIndex, err = indexer.CreateNewIndex(config.ElasticURL, config.Index)
-			if err != nil {
-				logError(config.Rebuild, err, "error creating new index")
-				continue
-			}
-			log.WithField("index", config.Index).WithField("physicalIndex", physicalIndex).Info("created new physical index")
-			remapAlias = true
-		}
-
-		lastModified, err := indexer.GetLastModified(config.ElasticURL, physicalIndex)
 		if err != nil {
-			logError(config.Rebuild, err, "error finding last modified")
-			continue
-		}
-
-		start := time.Now()
-		log.WithField("last_modified", lastModified).WithField("index", physicalIndex).Info("indexing contacts newer than last modified")
-
-		// now index our docs
-		indexed, deleted, err := indexer.IndexContacts(db, config.ElasticURL, physicalIndex, lastModified.Add(-5*time.Second))
-		if err != nil {
-			logError(config.Rebuild, err, "error indexing contacts")
-			continue
-		}
-		log.WithField("added", indexed).WithField("deleted", deleted).WithField("index", physicalIndex).WithField("elapsed", time.Now().Sub(start)).Info("completed indexing")
-
-		// if the index didn't previously exist or we are rebuilding, remap to our alias
-		if remapAlias {
-			err := indexer.MapIndexAlias(config.ElasticURL, config.Index, physicalIndex)
-			if err != nil {
-				logError(config.Rebuild, err, "error remapping alias")
-				continue
-			}
-			remapAlias = false
-		}
-
-		// cleanup our aliases if appropriate
-		if config.Cleanup {
-			err := indexer.CleanupIndexes(config.ElasticURL, config.Index)
-			if err != nil {
-				logError(config.Rebuild, err, "error cleaning up aliases")
-				continue
+			if config.Rebuild {
+				log.WithField("index", config.Index).WithError(err).Fatal("error during rebuilding")
+			} else {
+				log.WithField("index", config.Index).WithError(err).Error("error during indexing")
 			}
 		}
 
+		// if we were rebuilding then we're done
 		if config.Rebuild {
 			os.Exit(0)
 		}
 
 		// sleep a bit before starting again
-		time.Sleep(time.Second * 5)
-	}
-}
-
-func logError(fatal bool, err error, msg string) {
-	if fatal {
-		log.WithError(err).Fatal(msg)
-	} else {
-		log.WithError(err).Error(msg)
 		time.Sleep(time.Second * 5)
 	}
 }

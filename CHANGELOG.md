@@ -1,3 +1,9 @@
+v7.3.0
+----------
+ * Add stats reporting cron task and optional librato config
+ * Refactor to support different indexer types
+ * Update golang.org/x/sys
+
 v7.2.0
 ----------
  * Tweak README

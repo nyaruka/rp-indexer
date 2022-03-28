@@ -5,6 +5,7 @@ require (
 	github.com/lib/pq v1.10.4
 	github.com/nyaruka/ezconf v0.2.1
 	github.com/nyaruka/gocommon v1.17.1
+	github.com/nyaruka/librato v1.0.0
 	github.com/olivere/elastic/v7 v7.0.22
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1

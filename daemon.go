@@ -16,18 +16,20 @@ type Daemon struct {
 	wg       *sync.WaitGroup
 	quit     chan bool
 	indexers []indexers.Indexer
+	poll     time.Duration
 
 	prevStats map[indexers.Indexer]indexers.Stats
 }
 
 // NewDaemon creates a new daemon to run the given indexers
-func NewDaemon(cfg *Config, db *sql.DB, ixs []indexers.Indexer) *Daemon {
+func NewDaemon(cfg *Config, db *sql.DB, ixs []indexers.Indexer, poll time.Duration) *Daemon {
 	return &Daemon{
 		cfg:       cfg,
 		db:        db,
 		wg:        &sync.WaitGroup{},
 		quit:      make(chan bool),
 		indexers:  ixs,
+		poll:      poll,
 		prevStats: make(map[indexers.Indexer]indexers.Stats, len(ixs)),
 	}
 }
@@ -41,13 +43,13 @@ func (d *Daemon) Start() {
 	}
 
 	for _, i := range d.indexers {
-		d.startIndexer(i, time.Second*5)
+		d.startIndexer(i)
 	}
 
 	d.startStatsReporter(time.Minute)
 }
 
-func (d *Daemon) startIndexer(indexer indexers.Indexer, interval time.Duration) {
+func (d *Daemon) startIndexer(indexer indexers.Indexer) {
 	d.wg.Add(1) // add ourselves to the wait group
 
 	log := logrus.WithField("indexer", indexer.Name())
@@ -62,7 +64,7 @@ func (d *Daemon) startIndexer(indexer indexers.Indexer, interval time.Duration) 
 			select {
 			case <-d.quit:
 				return
-			case <-time.After(interval):
+			case <-time.After(d.poll):
 				_, err := indexer.Index(d.db, d.cfg.Rebuild, d.cfg.Cleanup)
 				if err != nil {
 					log.WithError(err).Error("error during indexing")

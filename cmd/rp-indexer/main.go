@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/evalphobia/logrus_sentry"
 	_ "github.com/lib/pq"
@@ -59,7 +60,7 @@ func main() {
 			log.WithField("indexer", idxr.Name()).WithError(err).Fatal("error during rebuilding")
 		}
 	} else {
-		d := indexer.NewDaemon(cfg, db, idxrs)
+		d := indexer.NewDaemon(cfg, db, idxrs, time.Duration(cfg.Poll)*time.Second)
 		d.Start()
 
 		handleSignals(d)

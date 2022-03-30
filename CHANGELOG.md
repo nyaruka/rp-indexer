@@ -1,3 +1,8 @@
+v7.3.1
+----------
+ * If indexing fails, log status code from elasticsearch
+ * Poll interval is configurable
+
 v7.3.0
 ----------
  * Add stats reporting cron task and optional librato config

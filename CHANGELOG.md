@@ -1,3 +1,7 @@
+v7.3.3
+----------
+ * Include flow id history as flow_history_ids and current flow id as flow_id 
+
 v7.3.1
 ----------
  * If indexing fails, log status code from elasticsearch

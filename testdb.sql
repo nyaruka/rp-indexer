@@ -166,4 +166,6 @@ INSERT INTO flows_flowrun(id, uuid, flow_id, contact_id) VALUES
 (1, '8b30ee61-e19d-427e-bb9f-4b8cd2c31d0c', 1, 1),
 (2, '94639979-155e-444d-95e9-a39dad64dbd5', 1, 1),
 (3, '74d918df-0e31-4547-98a9-5d765450e2ac', 2, 1),
-(4, '14fdf8fc-6e02-4759-b9be-cacc5991cd14', 1, 2);
+(4, '14fdf8fc-6e02-4759-b9be-cacc5991cd14', 1, 2),
+(5, '5171b4d8-e9bb-46c1-901e-53e13f3afe5d', 2, 2),
+(6, '4cc84e32-910f-41d6-865d-63fe25db4cde', 1, 3);

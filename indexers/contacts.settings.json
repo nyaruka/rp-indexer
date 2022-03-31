@@ -156,7 +156,7 @@
                 "flow_id": {
                     "type": "integer"
                 },
-                "flow_history": {
+                "flow_history_ids": {
                     "type": "integer"
                 },
                 "tickets": {

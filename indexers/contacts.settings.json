@@ -153,6 +153,12 @@
                 "flow": {
                     "type": "keyword"
                 },
+                "flow_id": {
+                    "type": "integer"
+                },
+                "flow_history_ids": {
+                    "type": "integer"
+                },
                 "tickets": {
                     "type": "integer"
                 },

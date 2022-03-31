@@ -147,7 +147,11 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
 		) AS groups,
 		(
 			SELECT f.uuid FROM flows_flow f WHERE f.id = contacts_contact.current_flow_id
-		) AS flow
+		) AS flow,
+		current_flow_id AS flow_id,
+		(
+			SELECT array_to_json(array_agg(DISTINCT fr.flow_id)) FROM flows_flowrun fr WHERE fr.contact_id = contacts_contact.id
+		) AS flow_history_ids
 	FROM contacts_contact
 	WHERE modified_on >= $1
 	ORDER BY modified_on ASC

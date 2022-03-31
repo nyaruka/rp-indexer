@@ -30,6 +30,10 @@ var contactQueryTests = []struct {
 	{elastic.NewRangeQuery("tickets").Gt(0), []int64{1, 2, 3}},
 	{elastic.NewMatchQuery("flow", "6d3cf1eb-546e-4fb8-a5ca-69187648fbf6"), []int64{2, 3}},
 	{elastic.NewMatchQuery("flow", "4eea8ff1-4fe2-4ce5-92a4-0870a499973a"), []int64{4}},
+	{elastic.NewMatchQuery("flow_id", 1), []int64{2, 3}},
+	{elastic.NewMatchQuery("flow_id", 2), []int64{4}},
+	{elastic.NewMatchQuery("flow_history_ids", 1), []int64{1, 2, 3}},
+	{elastic.NewMatchQuery("flow_history_ids", 2), []int64{1, 2}},
 	{elastic.NewRangeQuery("created_on").Gt("2017-01-01"), []int64{1, 6, 8}},                   // created_on range
 	{elastic.NewRangeQuery("last_seen_on").Lt("2019-01-01"), []int64{3, 4}},                    // last_seen_on range
 	{elastic.NewExistsQuery("last_seen_on"), []int64{1, 2, 3, 4, 5, 6}},                        // last_seen_on is set

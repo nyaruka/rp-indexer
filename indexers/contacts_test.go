@@ -183,6 +183,9 @@ var contactQueryTests = []struct {
 	{elastic.NewMatchQuery("groups", "4ea0f313-2f62-4e57-bdf0-232b5191dd57"), []int64{1}},
 	{elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1, 2}},
 	{elastic.NewMatchQuery("groups", "4c016340-468d-4675-a974-15cb7a45a5ab"), []int64{}},
+	{elastic.NewMatchQuery("group_ids", 1), []int64{1}},
+	{elastic.NewMatchQuery("group_ids", 4), []int64{1, 2}},
+	{elastic.NewMatchQuery("group_ids", 2), []int64{}},
 }
 
 func TestContacts(t *testing.T) {

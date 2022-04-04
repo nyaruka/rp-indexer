@@ -146,6 +146,9 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
 			) g
 		) AS groups,
 		(
+			SELECT array_to_json(array_agg(gc.contactgroup_id)) FROM contacts_contactgroup_contacts gc WHERE gc.contact_id = contacts_contact.id
+		) AS group_ids,
+		(
 			SELECT f.uuid FROM flows_flow f WHERE f.id = contacts_contact.current_flow_id
 		) AS flow,
 		current_flow_id AS flow_id,

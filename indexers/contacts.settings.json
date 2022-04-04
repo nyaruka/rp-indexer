@@ -79,6 +79,23 @@
                 "required": true
             },
             "properties": {
+                "uuid": {
+                    "type": "keyword"
+                },
+                "name": {
+                    "type": "text",
+                    "analyzer": "prefix",
+                    "search_analyzer": "name_search",
+                    "fields": {
+                        "keyword": {
+                            "type": "keyword",
+                            "normalizer": "lowercase"
+                        }
+                    }
+                },
+                "status": {
+                    "type": "keyword"
+                },
                 "fields": {
                     "type": "nested",
                     "properties": {
@@ -144,10 +161,7 @@
                 "groups": {
                     "type": "keyword"
                 },
-                "uuid": {
-                    "type": "keyword"
-                },
-                "status": {
+                "group_ids": {
                     "type": "keyword"
                 },
                 "flow": {
@@ -177,17 +191,6 @@
                 },
                 "last_seen_on": {
                     "type": "date"
-                },
-                "name": {
-                    "type": "text",
-                    "analyzer": "prefix",
-                    "search_analyzer": "name_search",
-                    "fields": {
-                        "keyword": {
-                            "type": "keyword",
-                            "normalizer": "lowercase"
-                        }
-                    }
                 }
             }
         }

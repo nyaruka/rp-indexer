@@ -1,3 +1,7 @@
+v7.3.4
+----------
+ * Add group_ids field to replace groups
+
 v7.3.3
 ----------
  * Include flow id history as flow_history_ids and current flow id as flow_id 

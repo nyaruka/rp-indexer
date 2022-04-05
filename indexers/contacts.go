@@ -64,7 +64,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error
 
 	// now index our docs
 	start := time.Now()
-	indexed, deleted, err := i.indexModified(db, physicalIndex, lastModified.Add(-5*time.Second))
+	indexed, deleted, err := i.indexModified(db, physicalIndex, lastModified.Add(-5*time.Second), rebuild)
 	if err != nil {
 		return "", errors.Wrap(err, "error indexing documents")
 	}
@@ -158,12 +158,12 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
 	FROM contacts_contact
 	WHERE modified_on >= $1
 	ORDER BY modified_on ASC
-	LIMIT 500000
+	LIMIT 100000
 ) t;
 `
 
 // IndexModified queries and indexes all contacts with a lastModified greater than or equal to the passed in time
-func (i *ContactIndexer) indexModified(db *sql.DB, index string, lastModified time.Time) (int, int, error) {
+func (i *ContactIndexer) indexModified(db *sql.DB, index string, lastModified time.Time, rebuild bool) (int, int, error) {
 	batch := &bytes.Buffer{}
 	createdCount, deletedCount, processedCount := 0, 0, 0
 
@@ -250,7 +250,14 @@ func (i *ContactIndexer) indexModified(db *sql.DB, index string, lastModified ti
 		elapsed := time.Since(start)
 		rate := float32(processedCount) / (float32(elapsed) / float32(time.Second))
 
-		i.log().WithField("index", index).WithFields(logrus.Fields{"rate": int(rate), "added": createdCount, "deleted": deletedCount, "elapsed": elapsed}).Debug("indexed contact batch")
+		log := i.log().WithField("index", index).WithFields(logrus.Fields{"rate": int(rate), "added": createdCount, "deleted": deletedCount, "elapsed": elapsed})
+
+		// if we're rebuilding, always log batch progress
+		if rebuild {
+			log.Info("indexed contact batch")
+		} else {
+			log.Debug("indexed contact batch")
+		}
 	}
 
 	return createdCount, deletedCount, nil

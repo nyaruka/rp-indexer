@@ -148,7 +148,7 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
 	FROM contacts_contact
 	WHERE modified_on >= $1
 	ORDER BY modified_on ASC
-	LIMIT 100000
+	LIMIT 500000
 ) t;
 `
 

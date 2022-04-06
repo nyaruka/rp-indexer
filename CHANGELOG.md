@@ -1,6 +1,6 @@
 v7.3.5
 ----------
- * Lower batch size to 100000 and log batch progress during rebuilds
+ * Log batch progress during rebuilds
 
 v7.3.4
 ----------

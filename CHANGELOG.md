@@ -1,3 +1,7 @@
+v7.3.5
+----------
+ * Log batch progress during rebuilds
+
 v7.3.4
 ----------
  * Add group_ids field to replace groups

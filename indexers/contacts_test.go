@@ -28,8 +28,6 @@ var contactQueryTests = []struct {
 	{elastic.NewMatchQuery("tickets", 2), []int64{1}},
 	{elastic.NewMatchQuery("tickets", 1), []int64{2, 3}},
 	{elastic.NewRangeQuery("tickets").Gt(0), []int64{1, 2, 3}},
-	{elastic.NewMatchQuery("flow", "6d3cf1eb-546e-4fb8-a5ca-69187648fbf6"), []int64{2, 3}},
-	{elastic.NewMatchQuery("flow", "4eea8ff1-4fe2-4ce5-92a4-0870a499973a"), []int64{4}},
 	{elastic.NewMatchQuery("flow_id", 1), []int64{2, 3}},
 	{elastic.NewMatchQuery("flow_id", 2), []int64{4}},
 	{elastic.NewMatchQuery("flow_history_ids", 1), []int64{1, 2, 3}},
@@ -180,9 +178,6 @@ var contactQueryTests = []struct {
 		)),
 		[]int64{},
 	},
-	{elastic.NewMatchQuery("groups", "4ea0f313-2f62-4e57-bdf0-232b5191dd57"), []int64{1}},
-	{elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1, 2}},
-	{elastic.NewMatchQuery("groups", "4c016340-468d-4675-a974-15cb7a45a5ab"), []int64{}},
 	{elastic.NewMatchQuery("group_ids", 1), []int64{1}},
 	{elastic.NewMatchQuery("group_ids", 4), []int64{1, 2}},
 	{elastic.NewMatchQuery("group_ids", 2), []int64{}},
@@ -235,7 +230,7 @@ func TestContacts(t *testing.T) {
 	assertQuery(t, es, elastic.NewMatchQuery("name", "john"), []int64{2})
 
 	// 3 is no longer in our group
-	assertQuery(t, es, elastic.NewMatchQuery("groups", "529bac39-550a-4d6f-817c-1833f3449007"), []int64{1})
+	assertQuery(t, es, elastic.NewMatchQuery("group_ids", 4), []int64{1})
 
 	// change John's name to Eric..
 	_, err = db.Exec(`

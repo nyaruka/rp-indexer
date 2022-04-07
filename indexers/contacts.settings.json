@@ -159,13 +159,7 @@
                         }
                     }
                 },
-                "groups": {
-                    "type": "keyword"
-                },
                 "group_ids": {
-                    "type": "keyword"
-                },
-                "flow": {
                     "type": "keyword"
                 },
                 "flow_id": {

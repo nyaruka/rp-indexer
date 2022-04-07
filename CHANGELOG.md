@@ -1,3 +1,8 @@
+v7.3.6
+----------
+ * Ignore malformed field value numbers
+ * Drop the flow and groups fields which have been replaced by flow_id and group_ids
+
 v7.3.5
 ----------
  * Log batch progress during rebuilds

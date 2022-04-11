@@ -1,3 +1,8 @@
+v7.3.7
+----------
+ * Better logging within batches during rebuilds
+ * Test with latest ES 7.17
+
 v7.3.6
 ----------
  * Ignore malformed field value numbers

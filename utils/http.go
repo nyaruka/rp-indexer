@@ -25,6 +25,11 @@ func init() {
 }
 
 func shouldRetry(request *http.Request, response *http.Response, withDelay time.Duration) bool {
+	// no response is a connection timeout which we can retry
+	if response == nil {
+		return true
+	}
+
 	// 429 Too Many Requests is recoverable. Sometimes the server puts
 	// a Retry-After response header to indicate when the server is
 	// available to start processing request from client.

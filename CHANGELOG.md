@@ -1,3 +1,8 @@
+v7.3.8
+----------
+ * Update dependencies and go version to 1.18
+ * Don't panic on connection failure to ES
+
 v7.3.7
 ----------
  * Better logging within batches during rebuilds

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nyaruka/librato"
+	"github.com/nyaruka/gocommon/analytics"
 	"github.com/nyaruka/rp-indexer/indexers"
 	"github.com/sirupsen/logrus"
 )
@@ -38,9 +38,10 @@ func NewDaemon(cfg *Config, db *sql.DB, ixs []indexers.Indexer, poll time.Durati
 func (d *Daemon) Start() {
 	// if we have a librato token, configure it
 	if d.cfg.LibratoToken != "" {
-		librato.Configure(d.cfg.LibratoUsername, d.cfg.LibratoToken, d.cfg.InstanceName, time.Second, d.wg)
-		librato.Start()
+		analytics.RegisterBackend(analytics.NewLibrato(d.cfg.LibratoUsername, d.cfg.LibratoToken, d.cfg.InstanceName, time.Second, d.wg))
 	}
+
+	analytics.Start()
 
 	for _, i := range d.indexers {
 		d.startIndexer(i)
@@ -119,7 +120,7 @@ func (d *Daemon) reportStats() {
 	log := logrus.NewEntry(logrus.StandardLogger())
 
 	for k, v := range metrics {
-		librato.Gauge("indexer."+k, v)
+		analytics.Gauge("indexer."+k, v)
 		log = log.WithField(k, v)
 	}
 
@@ -129,7 +130,7 @@ func (d *Daemon) reportStats() {
 // Stop stops this daemon
 func (d *Daemon) Stop() {
 	logrus.Info("daemon stopping")
-	librato.Stop()
+	analytics.Stop()
 
 	close(d.quit)
 	d.wg.Wait()

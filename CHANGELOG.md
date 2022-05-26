@@ -1,3 +1,8 @@
+v7.3.9
+----------
+ * Use analytics package from gocommon instead of librato directly
+ * Add arm64 as a build target
+
 v7.3.8
 ----------
  * Update dependencies and go version to 1.18

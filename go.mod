@@ -6,8 +6,7 @@ require (
 	github.com/evalphobia/logrus_sentry v0.8.2
 	github.com/lib/pq v1.10.5
 	github.com/nyaruka/ezconf v0.2.1
-	github.com/nyaruka/gocommon v1.20.0
-	github.com/nyaruka/librato v1.0.0
+	github.com/nyaruka/gocommon v1.21.0
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
@@ -26,6 +25,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1 // indirect
+	github.com/nyaruka/librato v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect

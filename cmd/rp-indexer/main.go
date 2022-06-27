@@ -15,10 +15,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	// https://goreleaser.com/cookbooks/using-main.version
+	version = "dev"
+	date    = "unknown"
+)
+
 func main() {
 	cfg := indexer.NewDefaultConfig()
 	loader := ezconf.NewLoader(cfg, "indexer", "Indexes RapidPro contacts to ElasticSearch", []string{"indexer.toml"})
 	loader.MustLoad()
+
+	log.WithField("version", version).WithField("released", date).Info("starting indexer")
 
 	// configure our logger
 	log.SetOutput(os.Stdout)

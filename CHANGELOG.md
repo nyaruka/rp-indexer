@@ -1,3 +1,7 @@
+v7.3.10
+----------
+ * Log app version on startup
+
 v7.3.9
 ----------
  * Use analytics package from gocommon instead of librato directly

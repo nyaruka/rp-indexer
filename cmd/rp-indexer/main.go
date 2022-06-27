@@ -26,17 +26,15 @@ func main() {
 	loader := ezconf.NewLoader(cfg, "indexer", "Indexes RapidPro contacts to ElasticSearch", []string{"indexer.toml"})
 	loader.MustLoad()
 
-	log.WithField("version", version).WithField("released", date).Info("starting indexer")
-
-	// configure our logger
-	log.SetOutput(os.Stdout)
-	log.SetFormatter(&log.TextFormatter{})
-
 	level, err := log.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		log.Fatalf("Invalid log level '%s'", level)
 	}
+
 	log.SetLevel(level)
+	log.SetOutput(os.Stdout)
+	log.SetFormatter(&log.TextFormatter{})
+	log.WithField("version", version).WithField("released", date).Info("starting indexer")
 
 	// if we have a DSN entry, try to initialize it
 	if cfg.SentryDSN != "" {

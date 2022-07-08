@@ -1,3 +1,8 @@
+v7.4.0
+----------
+ * Update README
+ * Tweak startup logging
+
 v7.3.10
 ----------
  * Log app version on startup

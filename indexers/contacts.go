@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
 	"time"
 )
+
+//go:embed contacts.settings.json
+var contactsSettingsFile []byte
 
 var contactsSettings ElasticSettings
 
@@ -46,8 +48,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool, shards int, re
 
 	// doesn't exist or we are rebuilding, create it
 	if physicalIndex == "" || rebuild {
-		file, _ := ioutil.ReadFile("contacts.settings.json")
-		_ = json.Unmarshal([]byte(file), &contactsSettings)
+		_ = json.Unmarshal(contactsSettingsFile, &contactsSettings)
 		contactsSettings.Settings.Index.NumberOfShards = shards
 		contactsSettings.Settings.Index.NumberOfReplicas = replicas
 		physicalIndex, err = i.createNewIndex(contactsSettings)

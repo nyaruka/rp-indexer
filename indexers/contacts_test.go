@@ -191,7 +191,7 @@ func TestContacts(t *testing.T) {
 
 	expectedIndexName := fmt.Sprintf("indexer_test_%s", time.Now().Format("2006_01_02"))
 
-	indexName, err := ix1.Index(db, false, false)
+	indexName, err := ix1.Index(db, false, false, 2, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName, indexName)
 
@@ -217,7 +217,7 @@ func TestContacts(t *testing.T) {
 	require.NoError(t, err)
 
 	// and index again...
-	indexName, err = ix1.Index(db, false, false)
+	indexName, err = ix1.Index(db, false, false, 2, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName, indexName) // same index used
 	assertIndexerStats(t, ix1, 10, 1)
@@ -264,7 +264,7 @@ func TestContacts(t *testing.T) {
 	assertIndexesWithPrefix(t, es, aliasName, []string{expectedIndexName + "_2"})
 
 	// check that the original indexer now indexes against the new index
-	indexName, err = ix1.Index(db, false, false)
+	indexName, err = ix1.Index(db, false, false, 2, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_2", indexName)
 }

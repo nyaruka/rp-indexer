@@ -6,14 +6,13 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"time"
-
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"io/ioutil"
+	"time"
 )
 
-//go:embed contacts.settings.json
-var contactsSettings json.RawMessage
+var contactsSettings ElasticSettings
 
 // ContactIndexer is an indexer for contacts
 type ContactIndexer struct {
@@ -31,7 +30,7 @@ func NewContactIndexer(elasticURL, name string, batchSize int) *ContactIndexer {
 }
 
 // Index indexes modified contacts and returns the name of the concrete index
-func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error) {
+func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool, shards int, replicas int) (string, error) {
 	var err error
 
 	// find our physical index
@@ -47,6 +46,10 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error
 
 	// doesn't exist or we are rebuilding, create it
 	if physicalIndex == "" || rebuild {
+		file, _ := ioutil.ReadFile("contacts.settings.json")
+		_ = json.Unmarshal([]byte(file), &contactsSettings)
+		contactsSettings.Settings.Index.NumberOfShards = shards
+		contactsSettings.Settings.Index.NumberOfReplicas = replicas
 		physicalIndex, err = i.createNewIndex(contactsSettings)
 		if err != nil {
 			return "", errors.Wrap(err, "error creating new index")

@@ -48,7 +48,10 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool, shards int, re
 
 	// doesn't exist or we are rebuilding, create it
 	if physicalIndex == "" || rebuild {
-		_ = json.Unmarshal(contactsSettingsFile, &contactsSettings)
+		err = json.Unmarshal(contactsSettingsFile, &contactsSettings)
+		if err != nil {
+			return "", errors.Wrap(err, "error unmarshalling embeded contacts.settings.json file")
+		}
 		contactsSettings.Settings.Index.NumberOfShards = shards
 		contactsSettings.Settings.Index.NumberOfReplicas = replicas
 		physicalIndex, err = i.createNewIndex(contactsSettings)

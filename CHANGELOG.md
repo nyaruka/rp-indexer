@@ -1,3 +1,9 @@
+v7.5.0
+----------
+ * Change index setting to contacts_index
+ * Use go 1.19
+ * Allow configurable number of shards/replicas
+
 v7.4.0
 ----------
  * Update README

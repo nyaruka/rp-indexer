@@ -29,8 +29,20 @@ type Stats struct {
 // Indexer is base interface for indexers
 type Indexer interface {
 	Name() string
-	Index(db *sql.DB, rebuild, cleanup bool) (string, error)
+	Index(db *sql.DB, rebuild, cleanup bool, shards int, replicas int) (string, error)
 	Stats() Stats
+}
+
+type ElasticSettings struct {
+	Settings struct {
+		Index struct {
+			NumberOfShards       int `json:"number_of_shards"`
+			NumberOfReplicas     int `json:"number_of_replicas"`
+			RoutingPartitionSize int `json:"routing_partition_size"`
+		} `json:"index"`
+		Analysis json.RawMessage `json:"analysis"`
+	} `json:"settings"`
+	Mappings json.RawMessage `json:"mappings"`
 }
 
 type baseIndexer struct {
@@ -99,7 +111,7 @@ func (i *baseIndexer) FindIndexes() []string {
 // that index to `contacts`.
 //
 // If the day-specific name already exists, we append a .1 or .2 to the name.
-func (i *baseIndexer) createNewIndex(settings json.RawMessage) (string, error) {
+func (i *baseIndexer) createNewIndex(indexSettings ElasticSettings) (string, error) {
 	// create our day-specific name
 	index := fmt.Sprintf("%s_%s", i.name, time.Now().Format("2006_01_02"))
 	idx := 0
@@ -121,7 +133,11 @@ func (i *baseIndexer) createNewIndex(settings json.RawMessage) (string, error) {
 	}
 
 	// create the new index
-	_, err := utils.MakeJSONRequest(http.MethodPut, fmt.Sprintf("%s/%s?include_type_name=true", i.elasticURL, index), settings, nil)
+	settings, err := json.Marshal(indexSettings)
+	if err != nil {
+		return "", err
+	}
+	_, err = utils.MakeJSONRequest(http.MethodPut, fmt.Sprintf("%s/%s?include_type_name=true", i.elasticURL, index), settings, nil)
 	if err != nil {
 		return "", err
 	}

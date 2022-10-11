@@ -191,7 +191,7 @@ func TestContacts(t *testing.T) {
 
 	expectedIndexName := fmt.Sprintf("indexer_test_%s", time.Now().Format("2006_01_02"))
 
-	indexName, err := ix1.Index(db, false, false)
+	indexName, err := ix1.Index(db, false, false, 2, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName, indexName)
 
@@ -217,7 +217,7 @@ func TestContacts(t *testing.T) {
 	require.NoError(t, err)
 
 	// and index again...
-	indexName, err = ix1.Index(db, false, false)
+	indexName, err = ix1.Index(db, false, false, 2, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName, indexName) // same index used
 	assertIndexerStats(t, ix1, 10, 1)
@@ -240,7 +240,7 @@ func TestContacts(t *testing.T) {
 	// and simulate another indexer doing a parallel rebuild
 	ix2 := indexers.NewContactIndexer(elasticURL, aliasName, 4)
 
-	indexName2, err := ix2.Index(db, true, false)
+	indexName2, err := ix2.Index(db, true, false, 2, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_1", indexName2) // new index used
 	assertIndexerStats(t, ix2, 8, 0)
@@ -255,7 +255,7 @@ func TestContacts(t *testing.T) {
 
 	// simulate another indexer doing a parallel rebuild with cleanup
 	ix3 := indexers.NewContactIndexer(elasticURL, aliasName, 4)
-	indexName3, err := ix3.Index(db, true, true)
+	indexName3, err := ix3.Index(db, true, true, 2, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_2", indexName3) // new index used
 	assertIndexerStats(t, ix3, 8, 0)
@@ -264,7 +264,7 @@ func TestContacts(t *testing.T) {
 	assertIndexesWithPrefix(t, es, aliasName, []string{expectedIndexName + "_2"})
 
 	// check that the original indexer now indexes against the new index
-	indexName, err = ix1.Index(db, false, false)
+	indexName, err = ix1.Index(db, false, false, 2, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_2", indexName)
 }

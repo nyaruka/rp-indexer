@@ -66,7 +66,7 @@ func (d *Daemon) startIndexer(indexer indexers.Indexer) {
 			case <-d.quit:
 				return
 			case <-time.After(d.poll):
-				_, err := indexer.Index(d.db, d.cfg.Rebuild, d.cfg.Cleanup)
+				_, err := indexer.Index(d.db, d.cfg.Rebuild, d.cfg.Cleanup, d.cfg.ContactsShards, d.cfg.ContactsReplicas)
 				if err != nil {
 					log.WithError(err).Error("error during indexing")
 				}

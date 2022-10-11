@@ -4,17 +4,15 @@ import (
 	"bytes"
 	"database/sql"
 	_ "embed"
-	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
-//go:embed contacts.settings.json
-var contactsSettingsFile []byte
-
-var contactsSettings ElasticSettings
+//go:embed contacts.index.json
+var contactsIndexDef []byte
 
 // ContactIndexer is an indexer for contacts
 type ContactIndexer struct {
@@ -24,15 +22,17 @@ type ContactIndexer struct {
 }
 
 // NewContactIndexer creates a new contact indexer
-func NewContactIndexer(elasticURL, name string, batchSize int) *ContactIndexer {
+func NewContactIndexer(elasticURL, name string, shards, replicas, batchSize int) *ContactIndexer {
+	def := newIndexDefinition(contactsIndexDef, shards, replicas)
+
 	return &ContactIndexer{
-		baseIndexer: newBaseIndexer(elasticURL, name),
+		baseIndexer: newBaseIndexer(elasticURL, name, def),
 		batchSize:   batchSize,
 	}
 }
 
 // Index indexes modified contacts and returns the name of the concrete index
-func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool, shards int, replicas int) (string, error) {
+func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error) {
 	var err error
 
 	// find our physical index
@@ -48,13 +48,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool, shards int, re
 
 	// doesn't exist or we are rebuilding, create it
 	if physicalIndex == "" || rebuild {
-		err = json.Unmarshal(contactsSettingsFile, &contactsSettings)
-		if err != nil {
-			return "", errors.Wrap(err, "error unmarshalling embeded contacts.settings.json file")
-		}
-		contactsSettings.Settings.Index.NumberOfShards = shards
-		contactsSettings.Settings.Index.NumberOfReplicas = replicas
-		physicalIndex, err = i.createNewIndex(contactsSettings)
+		physicalIndex, err = i.createNewIndex(i.definition)
 		if err != nil {
 			return "", errors.Wrap(err, "error creating new index")
 		}

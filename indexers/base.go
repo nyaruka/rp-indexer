@@ -29,11 +29,13 @@ type Stats struct {
 // Indexer is base interface for indexers
 type Indexer interface {
 	Name() string
-	Index(db *sql.DB, rebuild, cleanup bool, shards int, replicas int) (string, error)
+	Index(db *sql.DB, rebuild, cleanup bool) (string, error)
 	Stats() Stats
 }
 
-type ElasticSettings struct {
+// IndexDefinition is what we pass to elastic to create an index,
+// see https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
+type IndexDefinition struct {
 	Settings struct {
 		Index struct {
 			NumberOfShards       int `json:"number_of_shards"`
@@ -45,15 +47,25 @@ type ElasticSettings struct {
 	Mappings json.RawMessage `json:"mappings"`
 }
 
+func newIndexDefinition(base []byte, shards, replicas int) *IndexDefinition {
+	d := &IndexDefinition{}
+	jsonx.MustUnmarshal(contactsIndexDef, d)
+
+	d.Settings.Index.NumberOfShards = shards
+	d.Settings.Index.NumberOfReplicas = replicas
+	return d
+}
+
 type baseIndexer struct {
 	elasticURL string
 	name       string // e.g. contacts, used as the alias
+	definition *IndexDefinition
 
 	stats Stats
 }
 
-func newBaseIndexer(elasticURL, name string) baseIndexer {
-	return baseIndexer{elasticURL: elasticURL, name: name}
+func newBaseIndexer(elasticURL, name string, def *IndexDefinition) baseIndexer {
+	return baseIndexer{elasticURL: elasticURL, name: name, definition: def}
 }
 
 func (i *baseIndexer) Name() string {
@@ -111,7 +123,7 @@ func (i *baseIndexer) FindIndexes() []string {
 // that index to `contacts`.
 //
 // If the day-specific name already exists, we append a .1 or .2 to the name.
-func (i *baseIndexer) createNewIndex(indexSettings ElasticSettings) (string, error) {
+func (i *baseIndexer) createNewIndex(def *IndexDefinition) (string, error) {
 	// create our day-specific name
 	index := fmt.Sprintf("%s_%s", i.name, time.Now().Format("2006_01_02"))
 	idx := 0
@@ -133,11 +145,9 @@ func (i *baseIndexer) createNewIndex(indexSettings ElasticSettings) (string, err
 	}
 
 	// create the new index
-	settings, err := json.Marshal(indexSettings)
-	if err != nil {
-		return "", err
-	}
-	_, err = utils.MakeJSONRequest(http.MethodPut, fmt.Sprintf("%s/%s?include_type_name=true", i.elasticURL, index), settings, nil)
+	settings := jsonx.MustMarshal(def)
+
+	_, err := utils.MakeJSONRequest(http.MethodPut, fmt.Sprintf("%s/%s?include_type_name=true", i.elasticURL, index), settings, nil)
 	if err != nil {
 		return "", err
 	}

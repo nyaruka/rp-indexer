@@ -55,14 +55,14 @@ func main() {
 	}
 
 	idxrs := []indexers.Indexer{
-		indexers.NewContactIndexer(cfg.ElasticURL, cfg.ContactsIndex, 500),
+		indexers.NewContactIndexer(cfg.ElasticURL, cfg.ContactsIndex, cfg.ContactsShards, cfg.ContactsReplicas, 500),
 	}
 
 	if cfg.Rebuild {
 		// if rebuilding, just do a complete index and quit. In future when we support multiple indexers,
 		// the rebuild argument can be become the name of the index to rebuild, e.g. --rebuild=contacts
 		idxr := idxrs[0]
-		if _, err := idxr.Index(db, true, cfg.Cleanup, cfg.ContactsShards, cfg.ContactsReplicas); err != nil {
+		if _, err := idxr.Index(db, true, cfg.Cleanup); err != nil {
 			log.WithField("indexer", idxr.Name()).WithError(err).Fatal("error during rebuilding")
 		}
 	} else {

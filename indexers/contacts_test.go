@@ -186,12 +186,12 @@ var contactQueryTests = []struct {
 func TestContacts(t *testing.T) {
 	db, es := setup(t)
 
-	ix1 := indexers.NewContactIndexer(elasticURL, aliasName, 4)
+	ix1 := indexers.NewContactIndexer(elasticURL, aliasName, 2, 1, 4)
 	assert.Equal(t, "indexer_test", ix1.Name())
 
 	expectedIndexName := fmt.Sprintf("indexer_test_%s", time.Now().Format("2006_01_02"))
 
-	indexName, err := ix1.Index(db, false, false, 2, 1)
+	indexName, err := ix1.Index(db, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName, indexName)
 
@@ -217,7 +217,7 @@ func TestContacts(t *testing.T) {
 	require.NoError(t, err)
 
 	// and index again...
-	indexName, err = ix1.Index(db, false, false, 2, 1)
+	indexName, err = ix1.Index(db, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName, indexName) // same index used
 	assertIndexerStats(t, ix1, 10, 1)
@@ -238,9 +238,9 @@ func TestContacts(t *testing.T) {
 	require.NoError(t, err)
 
 	// and simulate another indexer doing a parallel rebuild
-	ix2 := indexers.NewContactIndexer(elasticURL, aliasName, 4)
+	ix2 := indexers.NewContactIndexer(elasticURL, aliasName, 2, 1, 4)
 
-	indexName2, err := ix2.Index(db, true, false, 2, 1)
+	indexName2, err := ix2.Index(db, true, false)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_1", indexName2) // new index used
 	assertIndexerStats(t, ix2, 8, 0)
@@ -254,8 +254,8 @@ func TestContacts(t *testing.T) {
 	assertQuery(t, es, elastic.NewMatchQuery("name", "eric"), []int64{2})
 
 	// simulate another indexer doing a parallel rebuild with cleanup
-	ix3 := indexers.NewContactIndexer(elasticURL, aliasName, 4)
-	indexName3, err := ix3.Index(db, true, true, 2, 1)
+	ix3 := indexers.NewContactIndexer(elasticURL, aliasName, 2, 1, 4)
+	indexName3, err := ix3.Index(db, true, true)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_2", indexName3) // new index used
 	assertIndexerStats(t, ix3, 8, 0)
@@ -264,7 +264,7 @@ func TestContacts(t *testing.T) {
 	assertIndexesWithPrefix(t, es, aliasName, []string{expectedIndexName + "_2"})
 
 	// check that the original indexer now indexes against the new index
-	indexName, err = ix1.Index(db, false, false, 2, 1)
+	indexName, err = ix1.Index(db, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_2", indexName)
 }

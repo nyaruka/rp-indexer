@@ -29,10 +29,12 @@ type Stats struct {
 // Indexer is base interface for indexers
 type Indexer interface {
 	Name() string
-	Index(db *sql.DB, rebuild, cleanup bool, shards int, replicas int) (string, error)
+	Index(db *sql.DB, rebuild, cleanup bool) (string, error)
 	Stats() Stats
 }
 
+// IndexDefinition is what we pass to elastic to create an index,
+// see https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
 type IndexDefinition struct {
 	Settings struct {
 		Index struct {
@@ -45,15 +47,25 @@ type IndexDefinition struct {
 	Mappings json.RawMessage `json:"mappings"`
 }
 
+func newIndexDefinition(base []byte, shards, replicas int) *IndexDefinition {
+	d := &IndexDefinition{}
+	jsonx.MustUnmarshal(contactsIndexDef, d)
+
+	d.Settings.Index.NumberOfShards = shards
+	d.Settings.Index.NumberOfReplicas = replicas
+	return d
+}
+
 type baseIndexer struct {
 	elasticURL string
 	name       string // e.g. contacts, used as the alias
+	definition *IndexDefinition
 
 	stats Stats
 }
 
-func newBaseIndexer(elasticURL, name string) baseIndexer {
-	return baseIndexer{elasticURL: elasticURL, name: name}
+func newBaseIndexer(elasticURL, name string, def *IndexDefinition) baseIndexer {
+	return baseIndexer{elasticURL: elasticURL, name: name, definition: def}
 }
 
 func (i *baseIndexer) Name() string {

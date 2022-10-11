@@ -7,13 +7,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 //go:embed contacts.index.json
-var contactsIndexDefinition []byte
+var contactsIndexDef []byte
 
 // ContactIndexer is an indexer for contacts
 type ContactIndexer struct {
@@ -23,15 +22,17 @@ type ContactIndexer struct {
 }
 
 // NewContactIndexer creates a new contact indexer
-func NewContactIndexer(elasticURL, name string, batchSize int) *ContactIndexer {
+func NewContactIndexer(elasticURL, name string, shards, replicas, batchSize int) *ContactIndexer {
+	def := newIndexDefinition(contactsIndexDef, shards, replicas)
+
 	return &ContactIndexer{
-		baseIndexer: newBaseIndexer(elasticURL, name),
+		baseIndexer: newBaseIndexer(elasticURL, name, def),
 		batchSize:   batchSize,
 	}
 }
 
 // Index indexes modified contacts and returns the name of the concrete index
-func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool, shards, replicas int) (string, error) {
+func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error) {
 	var err error
 
 	// find our physical index
@@ -47,13 +48,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool, shards, replic
 
 	// doesn't exist or we are rebuilding, create it
 	if physicalIndex == "" || rebuild {
-		def := &IndexDefinition{}
-		jsonx.MustUnmarshal(contactsIndexDefinition, def)
-
-		def.Settings.Index.NumberOfShards = shards
-		def.Settings.Index.NumberOfReplicas = replicas
-
-		physicalIndex, err = i.createNewIndex(def)
+		physicalIndex, err = i.createNewIndex(i.definition)
 		if err != nil {
 			return "", errors.Wrap(err, "error creating new index")
 		}

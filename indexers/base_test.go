@@ -3,7 +3,6 @@ package indexers_test
 import (
 	"context"
 	"database/sql"
-	"io/ioutil"
 	"log"
 	"os"
 	"sort"
@@ -22,7 +21,7 @@ const elasticURL = "http://localhost:9200"
 const aliasName = "indexer_test"
 
 func setup(t *testing.T) (*sql.DB, *elastic.Client) {
-	testDB, err := ioutil.ReadFile("../testdb.sql")
+	testDB, err := os.ReadFile("../testdb.sql")
 	require.NoError(t, err)
 
 	db, err := sql.Open("postgres", "postgres://nyaruka:nyaruka@localhost:5432/elastic_test?sslmode=disable")

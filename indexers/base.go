@@ -33,7 +33,7 @@ type Indexer interface {
 	Stats() Stats
 }
 
-type ElasticSettings struct {
+type IndexDefinition struct {
 	Settings struct {
 		Index struct {
 			NumberOfShards       int `json:"number_of_shards"`
@@ -111,7 +111,7 @@ func (i *baseIndexer) FindIndexes() []string {
 // that index to `contacts`.
 //
 // If the day-specific name already exists, we append a .1 or .2 to the name.
-func (i *baseIndexer) createNewIndex(indexSettings ElasticSettings) (string, error) {
+func (i *baseIndexer) createNewIndex(def *IndexDefinition) (string, error) {
 	// create our day-specific name
 	index := fmt.Sprintf("%s_%s", i.name, time.Now().Format("2006_01_02"))
 	idx := 0
@@ -133,11 +133,9 @@ func (i *baseIndexer) createNewIndex(indexSettings ElasticSettings) (string, err
 	}
 
 	// create the new index
-	settings, err := json.Marshal(indexSettings)
-	if err != nil {
-		return "", err
-	}
-	_, err = utils.MakeJSONRequest(http.MethodPut, fmt.Sprintf("%s/%s?include_type_name=true", i.elasticURL, index), settings, nil)
+	settings := jsonx.MustMarshal(def)
+
+	_, err := utils.MakeJSONRequest(http.MethodPut, fmt.Sprintf("%s/%s?include_type_name=true", i.elasticURL, index), settings, nil)
 	if err != nil {
 		return "", err
 	}

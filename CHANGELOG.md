@@ -1,3 +1,8 @@
+v8.0.0 (2023-01-09)
+-------------------------
+ * Test against postgres 14
+ * Test against latest elastic search 7.17.x
+
 v7.5.0
 ----------
  * Change index setting to contacts_index

@@ -24,7 +24,7 @@ func setup(t *testing.T) (*sql.DB, *elastic.Client) {
 	testDB, err := os.ReadFile("../testdb.sql")
 	require.NoError(t, err)
 
-	db, err := sql.Open("postgres", "postgres://nyaruka:nyaruka@localhost:5432/elastic_test?sslmode=disable")
+	db, err := sql.Open("postgres", "postgres://indexer_test:temba@localhost:5432/indexer_test?sslmode=disable")
 	require.NoError(t, err)
 
 	_, err = db.Exec(string(testDB))

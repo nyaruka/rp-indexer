@@ -22,9 +22,9 @@ jobs:
         uses: harmon758/postgresql-action@v1
         with:
           postgresql version: ${{ env.pg-version }}
-          postgresql db: elastic_test
-          postgresql user: nyaruka
-          postgresql password: nyaruka
+          postgresql db: indexer_test
+          postgresql user: indexer_test
+          postgresql password: temba
 
       - name: Install Go
         uses: actions/setup-go@v1

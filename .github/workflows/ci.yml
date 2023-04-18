@@ -5,29 +5,32 @@ env:
 jobs:
   test:
     name: Test
-    env:
-      pg-version: "14"
-      es-version: "7.17.6"
     runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_DB: indexer_test
+          POSTGRES_USER: indexer_test
+          POSTGRES_PASSWORD: temba
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      elastic:
+          image: elasticsearch:7.17.9
+          ports:
+            - 9200:9200
+            - 9300:9300
+          env:
+            discovery.type: single-node
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v1
-
-      - name: Install ElasticSearch
-        uses: nyaruka/elasticsearch-action@master
-        with:
-          elastic version: ${{ env.es-version }}
-
-      - name: Install PostgreSQL
-        uses: harmon758/postgresql-action@v1
-        with:
-          postgresql version: ${{ env.pg-version }}
-          postgresql db: indexer_test
-          postgresql user: indexer_test
-          postgresql password: temba
+        uses: actions/checkout@v3
 
       - name: Install Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.go-version }}
 
@@ -36,7 +39,7 @@ jobs:
 
       - name: Upload coverage
         if: success()
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
@@ -48,17 +51,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
 
       - name: Install Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.go-version }}
 
       - name: Publish release
-        uses: goreleaser/goreleaser-action@v1
+        uses: goreleaser/goreleaser-action@v4
         with:
-          version: v0.147.2
-          args: release --rm-dist
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

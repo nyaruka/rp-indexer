@@ -1,3 +1,8 @@
+v8.0.1 (2023-05-19)
+-------------------------
+ * Add major version to import path to allow use as library
+ * Use services in github actions
+
 v8.0.0 (2023-01-09)
 -------------------------
  * Test against postgres 14

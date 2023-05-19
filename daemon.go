@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/analytics"
-	"github.com/nyaruka/rp-indexer/indexers"
+	"github.com/nyaruka/rp-indexer/v8/indexers"
 	"github.com/sirupsen/logrus"
 )
 

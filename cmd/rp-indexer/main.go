@@ -10,8 +10,8 @@ import (
 	"github.com/evalphobia/logrus_sentry"
 	_ "github.com/lib/pq"
 	"github.com/nyaruka/ezconf"
-	indexer "github.com/nyaruka/rp-indexer"
-	"github.com/nyaruka/rp-indexer/indexers"
+	indexer "github.com/nyaruka/rp-indexer/v8"
+	"github.com/nyaruka/rp-indexer/v8/indexers"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/rp-indexer/utils"
+	"github.com/nyaruka/rp-indexer/v8/utils"
 	"github.com/sirupsen/logrus"
 )
 

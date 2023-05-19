@@ -1,4 +1,4 @@
-module github.com/nyaruka/rp-indexer
+module github.com/nyaruka/rp-indexer/v8
 
 go 1.19
 

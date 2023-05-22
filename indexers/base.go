@@ -275,7 +275,7 @@ func (i *baseIndexer) indexBatch(index string, batch []byte) (int, int, error) {
 	createdCount, deletedCount, conflictedCount := 0, 0, 0
 	for _, item := range response.Items {
 		if item.Index.ID != "" {
-			logrus.WithField("id", item.Index.ID).WithField("status", item.Index.Status).Debug("index response")
+			logrus.WithField("id", item.Index.ID).WithField("status", item.Index.Status).Trace("index response")
 			if item.Index.Status == 200 || item.Index.Status == 201 {
 				createdCount++
 			} else if item.Index.Status == 409 {
@@ -284,7 +284,7 @@ func (i *baseIndexer) indexBatch(index string, batch []byte) (int, int, error) {
 				logrus.WithField("id", item.Index.ID).WithField("status", item.Index.Status).WithField("result", item.Index.Result).Error("error indexing document")
 			}
 		} else if item.Delete.ID != "" {
-			logrus.WithField("id", item.Index.ID).WithField("status", item.Index.Status).Debug("delete response")
+			logrus.WithField("id", item.Index.ID).WithField("status", item.Index.Status).Trace("delete response")
 			if item.Delete.Status == 200 {
 				deletedCount++
 			} else if item.Delete.Status == 409 {

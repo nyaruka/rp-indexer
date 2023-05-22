@@ -209,14 +209,14 @@ func (i *ContactIndexer) indexModified(db *sql.DB, index string, lastModified ti
 			lastModified = modifiedOn
 
 			if isActive {
-				logrus.WithField("id", id).WithField("modifiedOn", modifiedOn).WithField("contact", contactJSON).Debug("modified contact")
+				logrus.WithField("id", id).WithField("modifiedOn", modifiedOn).WithField("contact", contactJSON).Trace("modified contact")
 
 				subBatch.WriteString(fmt.Sprintf(indexCommand, id, modifiedOn.UnixNano(), orgID))
 				subBatch.WriteString("\n")
 				subBatch.WriteString(contactJSON)
 				subBatch.WriteString("\n")
 			} else {
-				logrus.WithField("id", id).WithField("modifiedOn", modifiedOn).Debug("deleted contact")
+				logrus.WithField("id", id).WithField("modifiedOn", modifiedOn).Trace("deleted contact")
 
 				subBatch.WriteString(fmt.Sprintf(deleteCommand, id, modifiedOn.UnixNano(), orgID))
 				subBatch.WriteString("\n")

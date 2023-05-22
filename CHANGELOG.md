@@ -1,3 +1,7 @@
+v8.0.3 (2023-05-22)
+-------------------------
+ * Change some debug logging to trace level
+
 v8.0.2 (2023-05-22)
 -------------------------
  * Stop logging all ES requests in debug mode (only log errors)

@@ -1,3 +1,7 @@
+v8.0.2 (2023-05-22)
+-------------------------
+ * Stop logging all ES requests in debug mode (only log errors)
+
 v8.0.1 (2023-05-19)
 -------------------------
  * Add major version to import path to allow use as library

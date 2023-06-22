@@ -7,6 +7,6 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 COPY . .
-RUN go build -v -o /usr/local/bin/app github.com/nyaruka/rp-indexer/cmd/rp-indexer
+RUN go build -v -o /usr/local/bin/app github.com/nyaruka/rp-indexer/v8/cmd/rp-indexer
 
 CMD ["app"]

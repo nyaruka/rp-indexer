@@ -1,3 +1,7 @@
+v8.2.0 (2023-07-31)
+-------------------------
+ * Fix docker file
+
 v8.0.3 (2023-05-22)
 -------------------------
  * Change some debug logging to trace level

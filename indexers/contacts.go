@@ -2,6 +2,7 @@ package indexers
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	_ "embed"
 	"fmt"
@@ -33,6 +34,7 @@ func NewContactIndexer(elasticURL, name string, shards, replicas, batchSize int)
 
 // Index indexes modified contacts and returns the name of the concrete index
 func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error) {
+	ctx := context.TODO()
 	var err error
 
 	// find our physical index
@@ -65,7 +67,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error
 
 	// now index our docs
 	start := time.Now()
-	indexed, deleted, err := i.indexModified(db, physicalIndex, lastModified.Add(-5*time.Second), rebuild)
+	indexed, deleted, err := i.indexModified(ctx, db, physicalIndex, lastModified.Add(-5*time.Second), rebuild)
 	if err != nil {
 		return "", errors.Wrap(err, "error indexing documents")
 	}
@@ -154,7 +156,7 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
 `
 
 // IndexModified queries and indexes all contacts with a lastModified greater than or equal to the passed in time
-func (i *ContactIndexer) indexModified(db *sql.DB, index string, lastModified time.Time, rebuild bool) (int, int, error) {
+func (i *ContactIndexer) indexModified(ctx context.Context, db *sql.DB, index string, lastModified time.Time, rebuild bool) (int, int, error) {
 	totalFetched, totalCreated, totalDeleted := 0, 0, 0
 
 	var modifiedOn time.Time
@@ -186,7 +188,7 @@ func (i *ContactIndexer) indexModified(db *sql.DB, index string, lastModified ti
 			return nil
 		}
 
-		rows, err := db.Query(sqlSelectModifiedContacts, lastModified)
+		rows, err := db.QueryContext(ctx, sqlSelectModifiedContacts, lastModified)
 
 		queryModified := lastModified
 

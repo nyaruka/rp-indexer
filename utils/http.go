@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -38,14 +38,14 @@ func shouldRetry(request *http.Request, response *http.Response, withDelay time.
 	}
 
 	// check for unexpected EOF
-	bodyBytes, err := ioutil.ReadAll(response.Body)
+	bodyBytes, err := io.ReadAll(response.Body)
 	response.Body.Close()
 	if err != nil {
 		log.WithError(err).Error("error reading ES response, retrying")
 		return true
 	}
 
-	response.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	response.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 	return false
 }
 
@@ -62,7 +62,7 @@ func MakeJSONRequest(method string, url string, body []byte, dest any) (*http.Re
 	defer resp.Body.Close()
 
 	// if we have a body, try to decode it
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		l.WithError(err).Error("error reading response")
 		return resp, err

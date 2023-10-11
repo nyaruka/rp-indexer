@@ -2,6 +2,8 @@ package main
 
 import (
 	"database/sql"
+
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,7 +14,8 @@ import (
 	"github.com/nyaruka/ezconf"
 	indexer "github.com/nyaruka/rp-indexer/v8"
 	"github.com/nyaruka/rp-indexer/v8/indexers"
-	log "github.com/sirupsen/logrus"
+	"github.com/nyaruka/rp-indexer/v8/utils"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -26,32 +29,38 @@ func main() {
 	loader := ezconf.NewLoader(cfg, "indexer", "Indexes RapidPro contacts to ElasticSearch", []string{"indexer.toml"})
 	loader.MustLoad()
 
-	level, err := log.ParseLevel(cfg.LogLevel)
+	level, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		log.Fatalf("Invalid log level '%s'", level)
+		logrus.Fatalf("Invalid log level '%s'", level)
 	}
 
-	log.SetLevel(level)
-	log.SetOutput(os.Stdout)
-	log.SetFormatter(&log.TextFormatter{})
-	log.WithField("version", version).WithField("released", date).Info("starting indexer")
+	logrus.SetLevel(level)
+	logrus.SetOutput(os.Stdout)
+	logrus.SetFormatter(&logrus.TextFormatter{})
+	logrus.WithField("version", version).WithField("released", date).Info("starting indexer")
+
+	// configure golang std structured logging to route to logrus
+	slog.SetDefault(slog.New(utils.NewLogrusHandler(logrus.StandardLogger())))
+
+	logger := slog.With("comp", "main")
+	logger.Info("starting indexer", "version", version, "released", date)
 
 	// if we have a DSN entry, try to initialize it
 	if cfg.SentryDSN != "" {
-		hook, err := logrus_sentry.NewSentryHook(cfg.SentryDSN, []log.Level{log.PanicLevel, log.FatalLevel, log.ErrorLevel})
+		hook, err := logrus_sentry.NewSentryHook(cfg.SentryDSN, []logrus.Level{logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel})
 		hook.Timeout = 0
 		hook.StacktraceConfiguration.Enable = true
 		hook.StacktraceConfiguration.Skip = 4
 		hook.StacktraceConfiguration.Context = 5
 		if err != nil {
-			log.Fatalf("invalid sentry DSN: '%s': %s", cfg.SentryDSN, err)
+			logger.Error("invalid sentry DSN: '%s': %s", cfg.SentryDSN, err)
 		}
-		log.StandardLogger().Hooks.Add(hook)
+		logrus.StandardLogger().Hooks.Add(hook)
 	}
 
 	db, err := sql.Open("postgres", cfg.DB)
 	if err != nil {
-		log.Fatalf("unable to connect to database")
+		logger.Error("unable to connect to database")
 	}
 
 	idxrs := []indexers.Indexer{
@@ -63,7 +72,7 @@ func main() {
 		// the rebuild argument can be become the name of the index to rebuild, e.g. --rebuild=contacts
 		idxr := idxrs[0]
 		if _, err := idxr.Index(db, true, cfg.Cleanup); err != nil {
-			log.WithField("indexer", idxr.Name()).WithError(err).Fatal("error during rebuilding")
+			logger.Error("error during rebuilding", "error", err, "indexer", idxr.Name())
 		}
 	} else {
 		d := indexer.NewDaemon(cfg, db, idxrs, time.Duration(cfg.Poll)*time.Second)
@@ -82,7 +91,7 @@ func handleSignals(d *indexer.Daemon) {
 		sig := <-sigs
 		switch sig {
 		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-			log.WithField("signal", sig).Info("received exit signal, exiting")
+			slog.Info("received exit signal, exiting", "signal", sig)
 			d.Stop()
 			return
 		}

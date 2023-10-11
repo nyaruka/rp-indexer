@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"log/slog"
 	"os"
 	"sort"
 	"strconv"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/nyaruka/rp-indexer/v8/indexers"
 	"github.com/olivere/elastic/v7"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +44,7 @@ func setup(t *testing.T) (*sql.DB, *elastic.Client) {
 		}
 	}
 
-	logrus.SetLevel(logrus.DebugLevel)
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
 
 	return db, es
 }

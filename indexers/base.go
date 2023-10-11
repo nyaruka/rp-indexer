@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strings"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/rp-indexer/v8/utils"
-	"github.com/sirupsen/logrus"
 )
 
 // indexes a document
@@ -76,8 +76,8 @@ func (i *baseIndexer) Stats() Stats {
 	return i.stats
 }
 
-func (i *baseIndexer) log() *logrus.Entry {
-	return logrus.WithField("indexer", i.name)
+func (i *baseIndexer) log() *slog.Logger {
+	return slog.With("indexer", i.name)
 }
 
 // records a complete index and updates statistics
@@ -86,7 +86,7 @@ func (i *baseIndexer) recordComplete(indexed, deleted int, elapsed time.Duration
 	i.stats.Deleted += int64(deleted)
 	i.stats.Elapsed += elapsed
 
-	i.log().WithField("indexed", indexed).WithField("deleted", deleted).WithField("elapsed", elapsed).Info("completed indexing")
+	i.log().Info("completed indexing", "indexed", indexed, "deleted", deleted, "elapsed", elapsed)
 }
 
 // our response for figuring out the physical index for an alias
@@ -111,7 +111,7 @@ func (i *baseIndexer) FindIndexes() []string {
 	// reverse sort order should put our newest index first
 	sort.Sort(sort.Reverse(sort.StringSlice(indexes)))
 
-	i.log().WithField("indexes", indexes).Debug("found physical indexes")
+	i.log().Debug("found physical indexes", "indexes", indexes)
 
 	return indexes
 }
@@ -153,7 +153,7 @@ func (i *baseIndexer) createNewIndex(def *IndexDefinition) (string, error) {
 	}
 
 	// all went well, return our physical index name
-	i.log().WithField("index", index).Info("created new index")
+	i.log().Info("created new index", "index", index)
 
 	return index, nil
 }
@@ -191,7 +191,7 @@ func (i *baseIndexer) updateAlias(newIndex string) error {
 		remove.Remove.Index = idx
 		commands = append(commands, remove)
 
-		logrus.WithField("indexer", i.name).WithField("index", idx).Debug("removing old alias")
+		slog.Debug("removing old alias", "indexer", i.name, "index", idx)
 	}
 
 	// add our new index
@@ -204,7 +204,7 @@ func (i *baseIndexer) updateAlias(newIndex string) error {
 
 	_, err := utils.MakeJSONRequest(http.MethodPost, fmt.Sprintf("%s/_aliases", i.elasticURL), aliasJSON, nil)
 
-	i.log().WithField("index", newIndex).Info("updated alias")
+	i.log().Info("updated alias", "index", newIndex)
 
 	return err
 }
@@ -236,7 +236,7 @@ func (i *baseIndexer) cleanupIndexes() error {
 	// for each active index, if it starts with our alias but is before our current index, remove it
 	for key := range healthResponse.Indices {
 		if strings.HasPrefix(key, i.name) && strings.Compare(key, currents[0]) < 0 {
-			logrus.WithField("index", key).Info("removing old index")
+			slog.Info("removing old index", "index", key)
 			_, err = utils.MakeJSONRequest(http.MethodDelete, fmt.Sprintf("%s/%s", i.elasticURL, key), nil, nil)
 			if err != nil {
 				return err
@@ -275,27 +275,26 @@ func (i *baseIndexer) indexBatch(index string, batch []byte) (int, int, error) {
 	createdCount, deletedCount, conflictedCount := 0, 0, 0
 	for _, item := range response.Items {
 		if item.Index.ID != "" {
-			logrus.WithField("id", item.Index.ID).WithField("status", item.Index.Status).Trace("index response")
+			slog.Debug("index response", "id", item.Index.ID, "status", item.Index.Status)
 			if item.Index.Status == 200 || item.Index.Status == 201 {
 				createdCount++
 			} else if item.Index.Status == 409 {
 				conflictedCount++
 			} else {
-				logrus.WithField("id", item.Index.ID).WithField("status", item.Index.Status).WithField("result", item.Index.Result).Error("error indexing document")
+				slog.Error("error indexing document", "id", item.Index.ID, "status", item.Index.Status, "result", item.Index.Result)
 			}
 		} else if item.Delete.ID != "" {
-			logrus.WithField("id", item.Index.ID).WithField("status", item.Index.Status).Trace("delete response")
+			slog.Debug("delete response", "id", item.Index.ID, "status", item.Index.Status)
 			if item.Delete.Status == 200 {
 				deletedCount++
 			} else if item.Delete.Status == 409 {
 				conflictedCount++
 			}
 		} else {
-			logrus.Error("unparsed item in response")
+			slog.Error("unparsed item in response")
 		}
 	}
-	logrus.WithField("created", createdCount).WithField("deleted", deletedCount).WithField("conflicted", conflictedCount).Debug("indexed batch")
-
+	slog.Debug("indexed batch", "created", createdCount, "deleted", deletedCount, "conflicted", conflictedCount)
 	return createdCount, deletedCount, nil
 }
 

@@ -1,6 +1,6 @@
 module github.com/nyaruka/rp-indexer/v8
 
-go 1.20
+go 1.21
 
 require (
 	github.com/evalphobia/logrus_sentry v0.8.2

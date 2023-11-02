@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/nyaruka/gocommon/httpx"
-	log "github.com/sirupsen/logrus"
 )
 
 var retryConfig *httpx.RetryConfig
@@ -41,7 +41,7 @@ func shouldRetry(request *http.Request, response *http.Response, withDelay time.
 	bodyBytes, err := io.ReadAll(response.Body)
 	response.Body.Close()
 	if err != nil {
-		log.WithError(err).Error("error reading ES response, retrying")
+		slog.Error("error reading ES response, retrying", "error", err)
 		return true
 	}
 
@@ -51,12 +51,12 @@ func shouldRetry(request *http.Request, response *http.Response, withDelay time.
 
 // MakeJSONRequest is a utility function to make a JSON request, optionally decoding the response into the passed in struct
 func MakeJSONRequest(method string, url string, body []byte, dest any) (*http.Response, error) {
-	l := log.WithField("url", url).WithField("method", method)
+	l := slog.With("url", url, "method", method)
 
 	req, _ := httpx.NewRequest(method, url, bytes.NewReader(body), map[string]string{"Content-Type": "application/json"})
 	resp, err := httpx.Do(http.DefaultClient, req, retryConfig, nil)
 	if err != nil {
-		l.WithError(err).Error("error making request")
+		l.Error("error making request", "error", err)
 		return resp, err
 	}
 	defer resp.Body.Close()
@@ -64,22 +64,22 @@ func MakeJSONRequest(method string, url string, body []byte, dest any) (*http.Re
 	// if we have a body, try to decode it
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		l.WithError(err).Error("error reading response")
+		l.Error("error reading response", "error", err)
 		return resp, err
 	}
 
-	l = l.WithField("response", string(respBody)).WithField("status", resp.StatusCode)
+	l = l.With("response", string(respBody), "status", resp.StatusCode)
 
 	// error if we got a non-200
 	if resp.StatusCode != http.StatusOK {
-		l.WithError(err).Error("error reaching ES")
+		l.Error("error reaching ES", "error", err)
 		return resp, fmt.Errorf("received non-200 response %d: %s", resp.StatusCode, respBody)
 	}
 
 	if dest != nil {
 		err = json.Unmarshal(respBody, dest)
 		if err != nil {
-			l.WithError(err).Error("error unmarshalling response")
+			l.Error("error unmarshalling response", "error", err)
 			return resp, err
 		}
 	}

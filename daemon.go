@@ -2,12 +2,12 @@ package indexer
 
 import (
 	"database/sql"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/nyaruka/gocommon/analytics"
 	"github.com/nyaruka/rp-indexer/v8/indexers"
-	"github.com/sirupsen/logrus"
 )
 
 type Daemon struct {
@@ -53,7 +53,7 @@ func (d *Daemon) Start() {
 func (d *Daemon) startIndexer(indexer indexers.Indexer) {
 	d.wg.Add(1) // add ourselves to the wait group
 
-	log := logrus.WithField("indexer", indexer.Name())
+	log := slog.With("indexer", indexer.Name())
 
 	go func() {
 		defer func() {
@@ -68,7 +68,7 @@ func (d *Daemon) startIndexer(indexer indexers.Indexer) {
 			case <-time.After(d.poll):
 				_, err := indexer.Index(d.db, d.cfg.Rebuild, d.cfg.Cleanup)
 				if err != nil {
-					log.WithError(err).Error("error during indexing")
+					log.Error("error during indexing", "error", err)
 				}
 			}
 		}
@@ -80,7 +80,7 @@ func (d *Daemon) startStatsReporter(interval time.Duration) {
 
 	go func() {
 		defer func() {
-			logrus.Info("analytics exiting")
+			slog.Info("analytics exiting")
 			d.wg.Done()
 		}()
 
@@ -117,11 +117,11 @@ func (d *Daemon) reportStats() {
 		d.prevStats[ix] = stats
 	}
 
-	log := logrus.NewEntry(logrus.StandardLogger())
+	log := slog.New(slog.Default().Handler())
 
 	for k, v := range metrics {
 		analytics.Gauge("indexer."+k, v)
-		log = log.WithField(k, v)
+		log = log.With(k, v)
 	}
 
 	log.Info("stats reported")
@@ -129,7 +129,7 @@ func (d *Daemon) reportStats() {
 
 // Stop stops this daemon
 func (d *Daemon) Stop() {
-	logrus.Info("daemon stopping")
+	slog.Info("daemon stopping")
 	analytics.Stop()
 
 	close(d.quit)

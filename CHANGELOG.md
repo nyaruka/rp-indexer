@@ -1,3 +1,11 @@
+v8.3.1 (2023-11-02)
+-------------------------
+ * Update docker dev image to go 1.21
+ * Start replacing logrus with slog
+ * Bump golang.org/x/net from 0.14.0 to 0.17.0
+ * Replace deprecated ioutil calls
+ * Pass context to fetching of contacts
+
 v8.3.0 (2023-08-10)
 -------------------------
  * Update to go 1.20

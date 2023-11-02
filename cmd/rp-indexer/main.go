@@ -2,20 +2,20 @@ package main
 
 import (
 	"database/sql"
-
+	"log"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/evalphobia/logrus_sentry"
+	"github.com/getsentry/sentry-go"
 	_ "github.com/lib/pq"
 	"github.com/nyaruka/ezconf"
 	indexer "github.com/nyaruka/rp-indexer/v8"
 	"github.com/nyaruka/rp-indexer/v8/indexers"
-	"github.com/nyaruka/rp-indexer/v8/utils"
-	"github.com/sirupsen/logrus"
+	slogmulti "github.com/samber/slog-multi"
+	slogsentry "github.com/samber/slog-sentry"
 )
 
 var (
@@ -29,33 +29,41 @@ func main() {
 	loader := ezconf.NewLoader(cfg, "indexer", "Indexes RapidPro contacts to ElasticSearch", []string{"indexer.toml"})
 	loader.MustLoad()
 
-	level, err := logrus.ParseLevel(cfg.LogLevel)
+	var level slog.Level
+	err := level.UnmarshalText([]byte(cfg.LogLevel))
 	if err != nil {
-		logrus.Fatalf("Invalid log level '%s'", level)
+		log.Fatalf("invalid log level %s", level)
+		os.Exit(1)
 	}
 
-	logrus.SetLevel(level)
-	logrus.SetOutput(os.Stdout)
-	logrus.SetFormatter(&logrus.TextFormatter{})
-	logrus.WithField("version", version).WithField("released", date).Info("starting indexer")
-
-	// configure golang std structured logging to route to logrus
-	slog.SetDefault(slog.New(utils.NewLogrusHandler(logrus.StandardLogger())))
+	// configure our logger
+	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+	slog.SetDefault(slog.New(logHandler))
 
 	logger := slog.With("comp", "main")
 	logger.Info("starting indexer", "version", version, "released", date)
 
 	// if we have a DSN entry, try to initialize it
 	if cfg.SentryDSN != "" {
-		hook, err := logrus_sentry.NewSentryHook(cfg.SentryDSN, []logrus.Level{logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel})
-		hook.Timeout = 0
-		hook.StacktraceConfiguration.Enable = true
-		hook.StacktraceConfiguration.Skip = 4
-		hook.StacktraceConfiguration.Context = 5
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn:           cfg.SentryDSN,
+			EnableTracing: false,
+		})
 		if err != nil {
-			logger.Error("invalid sentry DSN: '%s': %s", cfg.SentryDSN, err)
+			log.Fatalf("error initiating sentry client, error %s, dsn %s", err, cfg.SentryDSN)
+			os.Exit(1)
 		}
-		logrus.StandardLogger().Hooks.Add(hook)
+
+		defer sentry.Flush(2 * time.Second)
+
+		logger = slog.New(
+			slogmulti.Fanout(
+				logHandler,
+				slogsentry.Option{Level: slog.LevelError}.NewSentryHandler(),
+			),
+		)
+		logger = logger.With("release", version)
+		slog.SetDefault(logger)
 	}
 
 	db, err := sql.Open("postgres", cfg.DB)

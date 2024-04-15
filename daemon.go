@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/analytics"
-	"github.com/nyaruka/rp-indexer/v8/indexers"
+	"github.com/nyaruka/rp-indexer/v9/indexers"
 )
 
 type Daemon struct {

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/rp-indexer/v8/utils"
+	"github.com/nyaruka/rp-indexer/v9/utils"
 )
 
 // indexes a document

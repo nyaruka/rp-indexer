@@ -12,8 +12,8 @@ import (
 	"github.com/getsentry/sentry-go"
 	_ "github.com/lib/pq"
 	"github.com/nyaruka/ezconf"
-	indexer "github.com/nyaruka/rp-indexer/v8"
-	"github.com/nyaruka/rp-indexer/v8/indexers"
+	indexer "github.com/nyaruka/rp-indexer/v9"
+	"github.com/nyaruka/rp-indexer/v9/indexers"
 	slogmulti "github.com/samber/slog-multi"
 	slogsentry "github.com/samber/slog-sentry"
 )

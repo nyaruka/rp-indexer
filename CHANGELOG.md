@@ -1,3 +1,8 @@
+v9.1.0 (2024-04-15)
+-------------------------
+ * Update deps and bump main package to v9
+ * Finish switching to use slog for logging
+
 v9.0.0 (2024-01-05)
 -------------------------
  * Update dependencies

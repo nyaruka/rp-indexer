@@ -53,7 +53,7 @@ type IndexDefinition struct {
 
 func newIndexDefinition(base []byte, shards, replicas int) *IndexDefinition {
 	d := &IndexDefinition{}
-	jsonx.MustUnmarshal(contactsIndexDef, d)
+	jsonx.MustUnmarshal(base, d)
 
 	d.Settings.Index.NumberOfShards = shards
 	d.Settings.Index.NumberOfReplicas = replicas

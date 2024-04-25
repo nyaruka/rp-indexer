@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"context"
 	"database/sql"
 	"log/slog"
 	"sync"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/nyaruka/gocommon/analytics"
 	"github.com/nyaruka/rp-indexer/v9/indexers"
+	"github.com/pkg/errors"
 )
 
 type Daemon struct {
@@ -78,6 +80,9 @@ func (d *Daemon) startIndexer(indexer indexers.Indexer) {
 func (d *Daemon) startStatsReporter(interval time.Duration) {
 	d.wg.Add(1) // add ourselves to the wait group
 
+	// calculating lag is more expensive than reading indexer stats so we only do it every 5th iteration
+	var iterations int64
+
 	go func() {
 		defer func() {
 			slog.Info("analytics exiting")
@@ -89,13 +94,19 @@ func (d *Daemon) startStatsReporter(interval time.Duration) {
 			case <-d.quit:
 				return
 			case <-time.After(interval):
-				d.reportStats()
+				d.reportStats(iterations%5 == 0)
 			}
+
+			iterations++
 		}
 	}()
 }
 
-func (d *Daemon) reportStats() {
+func (d *Daemon) reportStats(includeLag bool) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	log := slog.New(slog.Default().Handler())
 	metrics := make(map[string]float64, len(d.indexers)*2)
 
 	for _, ix := range d.indexers {
@@ -115,9 +126,16 @@ func (d *Daemon) reportStats() {
 		metrics[ix.Name()+"_rate"] = rateInPeriod
 
 		d.prevStats[ix] = stats
-	}
 
-	log := slog.New(slog.Default().Handler())
+		if includeLag {
+			lag, err := d.calculateLag(ctx, ix)
+			if err != nil {
+				log.Error("error getting db last modified", "index", ix.Name(), "error", err)
+			} else {
+				metrics[ix.Name()+"_lag"] = lag.Seconds()
+			}
+		}
+	}
 
 	for k, v := range metrics {
 		analytics.Gauge("indexer."+k, v)
@@ -125,6 +143,20 @@ func (d *Daemon) reportStats() {
 	}
 
 	log.Info("stats reported")
+}
+
+func (d *Daemon) calculateLag(ctx context.Context, ix indexers.Indexer) (time.Duration, error) {
+	esLastModified, err := ix.GetESLastModified(ix.Name())
+	if err != nil {
+		return 0, errors.Wrap(err, "error getting ES last modified")
+	}
+
+	dbLastModified, err := ix.GetDBLastModified(ctx, d.db)
+	if err != nil {
+		return 0, errors.Wrap(err, "error getting DB last modified")
+	}
+
+	return dbLastModified.Sub(esLastModified), nil
 }
 
 // Stop stops this daemon

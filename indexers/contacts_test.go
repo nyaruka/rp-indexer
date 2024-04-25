@@ -1,6 +1,7 @@
 package indexers_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -189,6 +190,14 @@ func TestContacts(t *testing.T) {
 	ix1 := indexers.NewContactIndexer(elasticURL, aliasName, 2, 1, 4)
 	assert.Equal(t, "indexer_test", ix1.Name())
 
+	dbModified, err := ix1.GetDBLastModified(context.Background(), db)
+	assert.NoError(t, err)
+	assert.WithinDuration(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), dbModified, 0)
+
+	// error trying to get ES last modified on before index exists
+	_, err = ix1.GetESLastModified(aliasName)
+	assert.Error(t, err)
+
 	expectedIndexName := fmt.Sprintf("indexer_test_%s", time.Now().Format("2006_01_02"))
 
 	indexName, err := ix1.Index(db, false, false)
@@ -196,6 +205,10 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, expectedIndexName, indexName)
 
 	time.Sleep(1 * time.Second)
+
+	esModified, err := ix1.GetESLastModified(aliasName)
+	assert.NoError(t, err)
+	assert.WithinDuration(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), esModified, 0)
 
 	assertIndexerStats(t, ix1, 9, 0)
 	assertIndexesWithPrefix(t, es, aliasName, []string{expectedIndexName})
@@ -205,7 +218,7 @@ func TestContacts(t *testing.T) {
 		assertQuery(t, es, tc.query, tc.expected, "query mismatch for %s", string(jsonx.MustMarshal(src)))
 	}
 
-	lastModified, err := ix1.GetLastModified(indexName)
+	lastModified, err := ix1.GetESLastModified(indexName)
 	assert.NoError(t, err)
 	assert.Equal(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), lastModified.In(time.UTC))
 

@@ -1,3 +1,7 @@
+v9.1.1 (2024-04-25)
+-------------------------
+ * Add reporting of lag as a metric
+
 v9.1.0 (2024-04-15)
 -------------------------
  * Update deps and bump main package to v9

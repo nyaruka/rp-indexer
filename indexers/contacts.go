@@ -58,7 +58,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error
 		remapAlias = true
 	}
 
-	lastModified, err := i.GetLastModified(physicalIndex)
+	lastModified, err := i.GetESLastModified(physicalIndex)
 	if err != nil {
 		return "", errors.Wrap(err, "error finding last modified")
 	}
@@ -273,4 +273,14 @@ func (i *ContactIndexer) indexModified(ctx context.Context, db *sql.DB, index st
 	}
 
 	return totalCreated, totalDeleted, nil
+}
+
+func (i *ContactIndexer) GetDBLastModified(ctx context.Context, db *sql.DB) (time.Time, error) {
+	lastModified := time.Time{}
+
+	if err := db.QueryRowContext(ctx, "SELECT MAX(modified_on) FROM contacts_contact").Scan(&lastModified); err != nil {
+		return lastModified, err
+	}
+
+	return lastModified, nil
 }

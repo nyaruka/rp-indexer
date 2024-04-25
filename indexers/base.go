@@ -1,6 +1,7 @@
 package indexers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -31,6 +32,9 @@ type Indexer interface {
 	Name() string
 	Index(db *sql.DB, rebuild, cleanup bool) (string, error)
 	Stats() Stats
+
+	GetESLastModified(index string) (time.Time, error)
+	GetDBLastModified(ctx context.Context, db *sql.DB) (time.Time, error)
 }
 
 // IndexDefinition is what we pass to elastic to create an index,
@@ -313,13 +317,18 @@ type queryResponse struct {
 	} `json:"hits"`
 }
 
-// GetLastModified queries a concrete index and finds the last modified document, returning its modified time
-func (i *baseIndexer) GetLastModified(index string) (time.Time, error) {
+// GetESLastModified queries a concrete index and finds the last modified document, returning its modified time
+func (i *baseIndexer) GetESLastModified(index string) (time.Time, error) {
 	lastModified := time.Time{}
 
 	// get the newest document on our index
-	queryResponse := queryResponse{}
-	_, err := utils.MakeJSONRequest(http.MethodPost, fmt.Sprintf("%s/%s/_search", i.elasticURL, index), []byte(`{ "sort": [{ "modified_on_mu": "desc" }]}`), &queryResponse)
+	queryResponse := &queryResponse{}
+	_, err := utils.MakeJSONRequest(
+		http.MethodPost,
+		fmt.Sprintf("%s/%s/_search", i.elasticURL, index),
+		[]byte(`{ "sort": [{ "modified_on_mu": "desc" }], "_source": {"includes": ["modified_on", "id"]}, "size": 1}`),
+		queryResponse,
+	)
 	if err != nil {
 		return lastModified, err
 	}

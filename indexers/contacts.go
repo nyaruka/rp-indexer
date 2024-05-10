@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/pkg/errors"
@@ -211,14 +210,14 @@ func (i *ContactIndexer) indexModified(ctx context.Context, db *sql.DB, index st
 			lastModified = modifiedOn
 
 			if isActive {
-				slog.Debug("modified contact", "id", id, "modifiedOn", modifiedOn, "contact", contactJSON)
+				i.log().Debug("modified contact", "id", id, "modifiedOn", modifiedOn, "contact", contactJSON)
 
 				subBatch.WriteString(fmt.Sprintf(indexCommand, id, modifiedOn.UnixNano(), orgID))
 				subBatch.WriteString("\n")
 				subBatch.WriteString(contactJSON)
 				subBatch.WriteString("\n")
 			} else {
-				slog.Debug("deleted contact", "id", id, "modifiedOn", modifiedOn)
+				i.log().Debug("deleted contact", "id", id, "modifiedOn", modifiedOn)
 
 				subBatch.WriteString(fmt.Sprintf(deleteCommand, id, modifiedOn.UnixNano(), orgID))
 				subBatch.WriteString("\n")

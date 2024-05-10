@@ -1,18 +1,21 @@
 package indexers_test
 
 import (
-	"context"
+	"bytes"
 	"database/sql"
-	"log"
+	"encoding/json"
+	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/nyaruka/gocommon/httpx"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/rp-indexer/v9/indexers"
-	"github.com/olivere/elastic/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +23,7 @@ import (
 const elasticURL = "http://localhost:9200"
 const aliasName = "indexer_test"
 
-func setup(t *testing.T) (*sql.DB, *elastic.Client) {
+func setup(t *testing.T) *sql.DB {
 	testDB, err := os.ReadFile("../testdb.sql")
 	require.NoError(t, err)
 
@@ -30,44 +33,41 @@ func setup(t *testing.T) (*sql.DB, *elastic.Client) {
 	_, err = db.Exec(string(testDB))
 	require.NoError(t, err)
 
-	es, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetTraceLog(log.New(os.Stdout, "", log.LstdFlags)), elastic.SetSniff(false))
-	require.NoError(t, err)
-
 	// delete all indexes with our alias prefix
-	existing, err := es.IndexNames()
-	require.NoError(t, err)
+	existing := elasticRequest(t, http.MethodGet, "/_aliases", nil)
 
-	for _, name := range existing {
+	for name := range existing {
 		if strings.HasPrefix(name, aliasName) {
-			_, err = es.DeleteIndex(name).Do(context.Background())
-			require.NoError(t, err)
+			elasticRequest(t, http.MethodDelete, "/"+name, nil)
 		}
 	}
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
 
-	return db, es
+	return db
 }
 
-func assertQuery(t *testing.T, client *elastic.Client, query elastic.Query, expected []int64, msgAndArgs ...interface{}) {
-	results, err := client.Search().Index(aliasName).Query(query).Sort("id", true).Pretty(true).Do(context.Background())
-	assert.NoError(t, err)
+func assertQuery(t *testing.T, query []byte, expected []int64, msgAndArgs ...interface{}) {
+	results := elasticRequest(t, http.MethodPost, "/"+aliasName+"/_search",
+		map[string]any{"query": json.RawMessage(query), "sort": []map[string]any{{"id": "asc"}}},
+	)
+	hits := results["hits"].(map[string]any)["hits"].([]any)
 
-	actual := make([]int64, len(results.Hits.Hits))
-	for h, hit := range results.Hits.Hits {
-		asInt, _ := strconv.Atoi(hit.Id)
+	actual := make([]int64, len(hits))
+	for h, hit := range hits {
+		idStr := hit.(map[string]any)["_id"].(string)
+		asInt, _ := strconv.Atoi(idStr)
 		actual[h] = int64(asInt)
 	}
 
 	assert.Equal(t, expected, actual, msgAndArgs...)
 }
 
-func assertIndexesWithPrefix(t *testing.T, es *elastic.Client, prefix string, expected []string) {
-	all, err := es.IndexNames()
-	require.NoError(t, err)
+func assertIndexesWithPrefix(t *testing.T, prefix string, expected []string) {
+	all := elasticRequest(t, http.MethodGet, "/_aliases", nil)
 
 	actual := []string{}
-	for _, name := range all {
+	for name := range all {
 		if strings.HasPrefix(name, prefix) {
 			actual = append(actual, name)
 		}
@@ -80,4 +80,21 @@ func assertIndexerStats(t *testing.T, ix indexers.Indexer, expectedIndexed, expe
 	actual := ix.Stats()
 	assert.Equal(t, expectedIndexed, actual.Indexed, "indexed mismatch")
 	assert.Equal(t, expectedDeleted, actual.Deleted, "deleted mismatch")
+}
+
+func elasticRequest(t *testing.T, method, path string, data map[string]any) map[string]any {
+	var body io.Reader
+	if data != nil {
+		body = bytes.NewReader(jsonx.MustMarshal(data))
+	}
+	req, err := httpx.NewRequest(method, elasticURL+path, body, map[string]string{"Content-Type": "application/json"})
+	require.NoError(t, err)
+
+	trace, err := httpx.DoTrace(http.DefaultClient, req, nil, nil, -1)
+	require.NoError(t, err)
+
+	resp, err := jsonx.DecodeGeneric(trace.ResponseBody)
+	require.NoError(t, err)
+
+	return resp.(map[string]any)
 }

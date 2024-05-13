@@ -61,9 +61,9 @@ var contactQueryTests = []struct {
 }
 
 func TestContacts(t *testing.T) {
-	db := setup(t)
+	cfg, db := setup(t)
 
-	ix1 := indexers.NewContactIndexer(elasticURL, aliasName, 2, 1, 4)
+	ix1 := indexers.NewContactIndexer(cfg.ElasticURL, aliasName, 2, 1, 4)
 	assert.Equal(t, "indexer_test", ix1.Name())
 
 	dbModified, err := ix1.GetDBLastModified(context.Background(), db)
@@ -87,10 +87,10 @@ func TestContacts(t *testing.T) {
 	assert.WithinDuration(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), esModified, 0)
 
 	assertIndexerStats(t, ix1, 9, 0)
-	assertIndexesWithPrefix(t, aliasName, []string{expectedIndexName})
+	assertIndexesWithPrefix(t, cfg, aliasName, []string{expectedIndexName})
 
 	for _, tc := range contactQueryTests {
-		assertQuery(t, []byte(tc.query), tc.expected, "query mismatch for %s", tc.query)
+		assertQuery(t, cfg, []byte(tc.query), tc.expected, "query mismatch for %s", tc.query)
 	}
 
 	lastModified, err := ix1.GetESLastModified(indexName)
@@ -112,13 +112,13 @@ func TestContacts(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	assertIndexesWithPrefix(t, aliasName, []string{expectedIndexName})
+	assertIndexesWithPrefix(t, cfg, aliasName, []string{expectedIndexName})
 
 	// should only match new john, old john is gone
-	assertQuery(t, []byte(`{"match": {"name": {"query": "john"}}}`), []int64{2})
+	assertQuery(t, cfg, []byte(`{"match": {"name": {"query": "john"}}}`), []int64{2})
 
 	// 3 is no longer in our group
-	assertQuery(t, []byte(`{"match": {"group_ids": {"query": 4}}}`), []int64{1})
+	assertQuery(t, cfg, []byte(`{"match": {"group_ids": {"query": 4}}}`), []int64{1})
 
 	// change John's name to Eric..
 	_, err = db.Exec(`
@@ -126,7 +126,7 @@ func TestContacts(t *testing.T) {
 	require.NoError(t, err)
 
 	// and simulate another indexer doing a parallel rebuild
-	ix2 := indexers.NewContactIndexer(elasticURL, aliasName, 2, 1, 4)
+	ix2 := indexers.NewContactIndexer(cfg.ElasticURL, aliasName, 2, 1, 4)
 
 	indexName2, err := ix2.Index(db, true, false)
 	assert.NoError(t, err)
@@ -136,20 +136,20 @@ func TestContacts(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// check we have a new index but the old index is still around
-	assertIndexesWithPrefix(t, aliasName, []string{expectedIndexName, expectedIndexName + "_1"})
+	assertIndexesWithPrefix(t, cfg, aliasName, []string{expectedIndexName, expectedIndexName + "_1"})
 
 	// and the alias points to the new index
-	assertQuery(t, []byte(`{"match": {"name": {"query": "eric"}}}`), []int64{2})
+	assertQuery(t, cfg, []byte(`{"match": {"name": {"query": "eric"}}}`), []int64{2})
 
 	// simulate another indexer doing a parallel rebuild with cleanup
-	ix3 := indexers.NewContactIndexer(elasticURL, aliasName, 2, 1, 4)
+	ix3 := indexers.NewContactIndexer(cfg.ElasticURL, aliasName, 2, 1, 4)
 	indexName3, err := ix3.Index(db, true, true)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_2", indexName3) // new index used
 	assertIndexerStats(t, ix3, 8, 0)
 
 	// check we cleaned up indexes besides the new one
-	assertIndexesWithPrefix(t, aliasName, []string{expectedIndexName + "_2"})
+	assertIndexesWithPrefix(t, cfg, aliasName, []string{expectedIndexName + "_2"})
 
 	// check that the original indexer now indexes against the new index
 	indexName, err = ix1.Index(db, false, false)

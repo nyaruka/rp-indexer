@@ -6,6 +6,9 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        elastic-port: [9207, 9208]
     
     services:
       postgres:
@@ -17,13 +20,19 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      elastic:
-          image: elasticsearch:7.17.9
-          ports:
-            - 9200:9200
-            - 9300:9300
-          env:
-            discovery.type: single-node
+      elastic7:
+        image: elasticsearch:7.17.9
+        ports:
+          - 9207:9200
+        env:
+          discovery.type: single-node
+      elastic8:
+        image: elasticsearch:8.13.4
+        ports:
+          - 9208:9200
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
 
     steps:
       - name: Checkout code
@@ -33,6 +42,10 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: ${{ env.go-version }}
+
+      - name: Setup environment
+        run: |
+          echo "INDEXER_ELASTIC_URL=http://localhost:${{ matrix.elastic-port }}" >> "$GITHUB_ENV"
 
       - name: Run tests
         run: go test -p=1 -coverprofile=coverage.text -covermode=atomic ./...

@@ -151,7 +151,7 @@ func (i *baseIndexer) createNewIndex(def *IndexDefinition) (string, error) {
 	// create the new index
 	settings := jsonx.MustMarshal(def)
 
-	_, err := utils.MakeJSONRequest(http.MethodPut, fmt.Sprintf("%s/%s?include_type_name=true", i.elasticURL, index), settings, nil)
+	_, err := utils.MakeJSONRequest(http.MethodPut, fmt.Sprintf("%s/%s", i.elasticURL, index), settings, nil)
 	if err != nil {
 		return "", err
 	}

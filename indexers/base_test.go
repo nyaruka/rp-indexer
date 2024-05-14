@@ -23,13 +23,18 @@ import (
 
 const aliasName = "indexer_test"
 
+func getenv(key, def string) string {
+	val := os.Getenv(key)
+	if val == "" {
+		return def
+	}
+	return val
+}
+
 func setup(t *testing.T) (*indexer.Config, *sql.DB) {
 	cfg := indexer.NewDefaultConfig()
-	cfg.DB = "postgres://indexer_test:temba@localhost:5432/indexer_test?sslmode=disable"
-	cfg.ElasticURL = os.Getenv("INDEXER_ELASTIC_URL")
-	if cfg.ElasticURL == "" {
-		cfg.ElasticURL = "http://localhost:9200"
-	}
+	cfg.DB = getenv("INDEXER_DB", "postgres://indexer_test:temba@localhost:5432/indexer_test?sslmode=disable")
+	cfg.ElasticURL = getenv("INDEXER_ELASTIC_URL", "http://localhost:9200")
 
 	testDB, err := os.ReadFile("../testdb.sql")
 	require.NoError(t, err)

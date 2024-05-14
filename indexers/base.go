@@ -16,10 +16,10 @@ import (
 )
 
 // indexes a document
-const indexCommand = `{ "index": { "_id": %d, "_type": "_doc", "version": %d, "version_type": "external", "routing": %d} }`
+const indexCommand = `{ "index": { "_id": %d, "version": %d, "version_type": "external", "routing": %d} }`
 
 // deletes a document
-const deleteCommand = `{ "delete" : { "_id": %d, "_type": "_doc", "version": %d, "version_type": "external", "routing": %d} }`
+const deleteCommand = `{ "delete" : { "_id": %d, "version": %d, "version_type": "external", "routing": %d} }`
 
 type Stats struct {
 	Indexed int64         // total number of documents indexed

@@ -1,3 +1,9 @@
+v9.1.2 (2024-05-14)
+-------------------------
+ * Remove deprecated _doc from mapping to support ES8 / OS2
+ * Test against Elastic 7.x and 8.x and OpenSearch 1.x
+ * Rewrite tests to make raw HTTP calls to elastic and not use the old library
+
 v9.1.1 (2024-04-25)
 -------------------------
  * Add reporting of lag as a metric

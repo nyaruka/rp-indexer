@@ -5,7 +5,7 @@ env:
 jobs:
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-m
     container:
       image: node:18
     strategy:

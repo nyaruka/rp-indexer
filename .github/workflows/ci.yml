@@ -7,7 +7,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     container:
-      image: node:18
+      image: node:20
     strategy:
       matrix:
         searchdb-host: [elastic7, elastic8, opensearch1, opensearch2]
@@ -52,10 +52,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.go-version }}
 

@@ -25,11 +25,13 @@ jobs:
         image: elasticsearch:7.17.9
         env:
           discovery.type: single-node
+        options: --ulimit memlock=-1:-1 --ulimit nofile=65536:65536
       elastic8:
         image: elasticsearch:8.13.4
         env:
           discovery.type: single-node
           xpack.security.enabled: false
+        options: --ulimit memlock=-1:-1 --ulimit nofile=65536:65536
       opensearch1:
         image: opensearchproject/opensearch:1.3.16
         env:

@@ -10,7 +10,7 @@ jobs:
       image: node:18
     strategy:
       matrix:
-        searchdb-host: [opensearch1, opensearch2]
+        searchdb-host: [elastic7, elastic8, opensearch2]
       fail-fast: false
     
     services:
@@ -30,11 +30,6 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
-      opensearch1:
-        image: opensearchproject/opensearch:1.3.16
-        env:
-          discovery.type: single-node
-          plugins.security.disabled: true
       opensearch2:
         image: opensearchproject/opensearch:2.13.0
         env:

@@ -35,7 +35,7 @@ jobs:
         env:
           discovery.type: single-node
           plugins.security.disabled: true
-          OPENSEARCH_INITIAL_ADMIN_PASSWORD: temba
+          OPENSEARCH_INITIAL_ADMIN_PASSWORD: admin
 
     steps:
       - name: Checkout code

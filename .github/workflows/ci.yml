@@ -34,7 +34,10 @@ jobs:
         image: opensearchproject/opensearch:2.13.0
         env:
           discovery.type: single-node
+          discovery.seed_hosts: opensearch2
           plugins.security.disabled: true
+          OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+          DISABLE_INSTALL_DEMO_CONFIG: true
           OPENSEARCH_INITIAL_ADMIN_PASSWORD: admin
 
     steps:

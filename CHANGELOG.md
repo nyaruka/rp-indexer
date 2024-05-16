@@ -1,3 +1,8 @@
+v9.1.3 (2024-05-16)
+-------------------------
+ * Reduce batch size to 100,000
+ * Test with OpenSearch 2.13 as well
+
 v9.1.2 (2024-05-14)
 -------------------------
  * Remove deprecated _doc from mapping to support ES8 / OS2

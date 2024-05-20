@@ -7,57 +7,160 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/rp-indexer/v9/indexers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var contactQueryTests = []struct {
-	query    string
+	query    elastic.Query
 	expected []int64
 }{
-	{`{"match":{"org_id":{"query":"1"}}}`, []int64{1, 2, 3, 4}},
-	{`{"match":{"name":{"query":"JOHn"}}}`, []int64{4}},
-	{`{"term":{"name.keyword":"JOHN DOE"}}`, []int64{4}},
-	{`{"bool":{"must":[{"match":{"name":{"query":"john"}}},{"match":{"name":{"query":"doe"}}}]}}`, []int64{4}},
-	{`{"match":{"name":{"query":"Ajodinabiff"}}}`, []int64{5}},
-	{`{"match":{"language":{"query":"eng"}}}`, []int64{1}},
-	{`{"match":{"status":{"query":"B"}}}`, []int64{3}},
-	{`{"match":{"status":{"query":"S"}}}`, []int64{2}},
-	{`{"match":{"tickets":{"query":2}}}`, []int64{1}},
-	{`{"match":{"tickets":{"query":1}}}`, []int64{2, 3}},
-	{`{"range":{"tickets":{"from":0,"include_lower":false,"include_upper":true,"to":null}}}`, []int64{1, 2, 3}},
-	{`{"match":{"flow_id":{"query":1}}}`, []int64{2, 3}},
-	{`{"match":{"flow_id":{"query":2}}}`, []int64{4}},
-	{`{"match":{"flow_history_ids":{"query":1}}}`, []int64{1, 2, 3}},
-	{`{"match":{"flow_history_ids":{"query":2}}}`, []int64{1, 2}},
-	{`{"range":{"created_on":{"from":"2017-01-01","include_lower":false,"include_upper":true,"to":null}}}`, []int64{1, 6, 8}},
-	{`{"range":{"last_seen_on":{"from":null,"include_lower":true,"include_upper":false,"to":"2019-01-01"}}}`, []int64{3, 4}},
-	{`{"exists":{"field":"last_seen_on"}}`, []int64{1, 2, 3, 4, 5, 6}},
-	{`{"bool":{"must_not":{"exists":{"field":"last_seen_on"}}}}`, []int64{7, 8, 9}},
-	{`{"nested":{"path":"urns","query":{"bool":{"must":[{"match":{"urns.scheme":{"query":"facebook"}}},{"match":{"urns.path.keyword":{"query":"1000001"}}}]}}}}`, []int64{8}},
-	{`{"nested":{"path":"urns","query":{"bool":{"must":[{"match":{"urns.scheme":{"query":"tel"}}},{"match_phrase":{"urns.path":{"query":"779"}}}]}}}}`, []int64{1, 2, 3, 6}},
-	{`{"nested":{"path":"urns","query":{"bool":{"must":[{"match":{"urns.scheme":{"query":"tel"}}},{"match_phrase":{"urns.path":{"query":"77911"}}}]}}}}`, []int64{1}},
-	{`{"nested":{"path":"urns","query":{"bool":{"must":[{"match":{"urns.scheme":{"query":"tel"}}},{"match_phrase":{"urns.path":{"query":"600055"}}}]}}}}`, []int64{5}},
-	{`{"nested":{"path":"urns","query":{"bool":{"must":[{"match":{"urns.scheme":{"query":"tel"}}},{"match_phrase":{"urns.path":{"query":"222"}}}]}}}}`, []int64{1}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"17103bb1-1b48-4b70-92f7-1f6b73bd3488"}}},{"match":{"fields.text":{"query":"the rock"}}}]}}}}`, []int64{1}},
-	{`{"bool":{"must_not":{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"17103bb1-1b48-4b70-92f7-1f6b73bd3488"}}},{"exists":{"field":"fields.text"}}]}}}}}}`, []int64{2, 3, 4, 5, 6, 7, 8, 9}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"17103bb1-1b48-4b70-92f7-1f6b73bd3488"}}},{"match":{"fields.text":{"query":"rock"}}}]}}}}`, []int64{}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"05bca1cd-e322-4837-9595-86d0d85e5adb"}}},{"range":{"fields.number":{"from":10,"include_lower":false,"include_upper":true,"to":null}}}]}}}}`, []int64{2}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"e0eac267-463a-4c00-9732-cab62df07b16"}}},{"range":{"fields.datetime":{"from":null,"include_lower":true,"include_upper":false,"to":"2020-01-01T00:00:00Z"}}}]}}}}`, []int64{3}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"22d11697-edba-4186-b084-793e3b876379"}}},{"match_phrase":{"fields.state":{"query":"washington"}}}]}}}}`, []int64{5}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"22d11697-edba-4186-b084-793e3b876379"}}},{"match":{"fields.state_keyword":{"query":"  washington"}}}]}}}}`, []int64{5}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"22d11697-edba-4186-b084-793e3b876379"}}},{"match":{"fields.state_keyword":{"query":"usa"}}}]}}}}`, []int64{}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"22d11697-edba-4186-b084-793e3b876379"}}},{"match_phrase":{"fields.state":{"query":"usa"}}}]}}}}`, []int64{}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"fcab2439-861c-4832-aa54-0c97f38f24ab"}}},{"match_phrase":{"fields.district":{"query":"king"}}}]}}}}`, []int64{7, 9}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"fcab2439-861c-4832-aa54-0c97f38f24ab"}}},{"match_phrase":{"fields.district":{"query":"King-Côunty"}}}]}}}}`, []int64{7}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"fcab2439-861c-4832-aa54-0c97f38f24ab"}}},{"match":{"fields.district_keyword":{"query":"King-Côunty"}}}]}}}}`, []int64{7}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"a551ade4-e5a0-4d83-b185-53b515ad2f2a"}}},{"match_phrase":{"fields.ward":{"query":"district"}}}]}}}}`, []int64{8}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"a551ade4-e5a0-4d83-b185-53b515ad2f2a"}}},{"match":{"fields.ward_keyword":{"query":"central district"}}}]}}}}`, []int64{8}},
-	{`{"nested":{"path":"fields","query":{"bool":{"must":[{"match":{"fields.field":{"query":"a551ade4-e5a0-4d83-b185-53b515ad2f2a"}}},{"match":{"fields.ward_keyword":{"query":"district"}}}]}}}}`, []int64{}},
-	{`{"match":{"group_ids":{"query":1}}}`, []int64{1}},
-	{`{"match":{"group_ids":{"query":4}}}`, []int64{1, 2}},
-	{`{"match":{"group_ids":{"query":2}}}`, []int64{}},
+	{elastic.Match("org_id", 1), []int64{1, 2, 3, 4}},
+	{elastic.Match("name", "JOHn"), []int64{4}},
+	{elastic.Term("name.keyword", "JOHN DOE"), []int64{4}},
+	{elastic.All(elastic.Match("name", "john"), elastic.Match("name", "doe")), []int64{4}}, // can search on both first and last name
+	{elastic.Match("name", "Ajodinabiff"), []int64{5}},
+	{elastic.Match("language", "eng"), []int64{1}},
+	{elastic.Match("status", "B"), []int64{3}},
+	{elastic.Match("status", "S"), []int64{2}},
+	{elastic.Match("tickets", 2), []int64{1}},
+	{elastic.Match("tickets", 1), []int64{2, 3}},
+	{elastic.GreaterThan("tickets", 0), []int64{1, 2, 3}},
+	{elastic.Match("flow_id", 1), []int64{2, 3}},
+	{elastic.Match("flow_id", 2), []int64{4}},
+	{elastic.Match("flow_history_ids", 1), []int64{1, 2, 3}},
+	{elastic.Match("flow_history_ids", 2), []int64{1, 2}},
+	{elastic.GreaterThan("created_on", "2017-01-01"), []int64{1, 6, 8}},
+	{elastic.LessThan("last_seen_on", "2019-01-01"), []int64{3, 4}},
+	{elastic.Exists("last_seen_on"), []int64{1, 2, 3, 4, 5, 6}},
+	{elastic.Not(elastic.Exists("last_seen_on")), []int64{7, 8, 9}},
+	{
+		elastic.Nested("urns", elastic.All(elastic.Match("urns.scheme", "facebook"), elastic.Match("urns.path.keyword", "1000001"))), []int64{8},
+	},
+	{ // urn substring
+		elastic.Nested("urns", elastic.All(elastic.Match("urns.scheme", "tel"), elastic.MatchPhrase("urns.path", "779"))), []int64{1, 2, 3, 6},
+	},
+	{ // urn substring with more characters (77911)
+		elastic.Nested("urns", elastic.All(elastic.Match("urns.scheme", "tel"), elastic.MatchPhrase("urns.path", "77911"))), []int64{1},
+	},
+	{ // urn substring with more characters (600055)
+		elastic.Nested("urns", elastic.All(elastic.Match("urns.scheme", "tel"), elastic.MatchPhrase("urns.path", "600055"))), []int64{5},
+	},
+	{ // match a contact with multiple tel urns
+		elastic.Nested("urns", elastic.All(elastic.Match("urns.scheme", "tel"), elastic.MatchPhrase("urns.path", "222"))), []int64{1},
+	},
+	{ // text field
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "17103bb1-1b48-4b70-92f7-1f6b73bd3488"),
+			elastic.Match("fields.text", "the rock"),
+		)),
+		[]int64{1},
+	},
+	{ // people with no nickname
+		elastic.Not(
+			elastic.Nested("fields", elastic.All(
+				elastic.Match("fields.field", "17103bb1-1b48-4b70-92f7-1f6b73bd3488"),
+				elastic.Exists("fields.text"),
+			)),
+		),
+		[]int64{2, 3, 4, 5, 6, 7, 8, 9},
+	},
+	{ // no tokenizing of field text
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "17103bb1-1b48-4b70-92f7-1f6b73bd3488"),
+			elastic.Match("fields.text", "rock"),
+		)),
+		[]int64{},
+	},
+	{ // number field range
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "05bca1cd-e322-4837-9595-86d0d85e5adb"),
+			elastic.GreaterThan("fields.number", 10),
+		)),
+		[]int64{2},
+	},
+	{ // datetime field range
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "e0eac267-463a-4c00-9732-cab62df07b16"),
+			elastic.LessThan("fields.datetime", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)),
+		)),
+		[]int64{3},
+	},
+	{ // state field
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "22d11697-edba-4186-b084-793e3b876379"),
+			elastic.MatchPhrase("fields.state", "washington"),
+		)),
+		[]int64{5},
+	},
+	{
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "22d11697-edba-4186-b084-793e3b876379"),
+			elastic.Match("fields.state_keyword", "  washington"),
+		)),
+		[]int64{5},
+	},
+	{ // doesn't include country
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "22d11697-edba-4186-b084-793e3b876379"),
+			elastic.Match("fields.state_keyword", "usa"),
+		)),
+		[]int64{},
+	},
+	{
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "22d11697-edba-4186-b084-793e3b876379"),
+			elastic.MatchPhrase("fields.state", "usa"),
+		)),
+		[]int64{},
+	},
+	{ // district field
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "fcab2439-861c-4832-aa54-0c97f38f24ab"),
+			elastic.MatchPhrase("fields.district", "king"),
+		)),
+		[]int64{7, 9},
+	},
+	{ // phrase matches all
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "fcab2439-861c-4832-aa54-0c97f38f24ab"),
+			elastic.MatchPhrase("fields.district", "King-Côunty"),
+		)),
+		[]int64{7},
+	},
+	{
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "fcab2439-861c-4832-aa54-0c97f38f24ab"),
+			elastic.Match("fields.district_keyword", "King-Côunty"),
+		)),
+		[]int64{7},
+	},
+	{ // ward field
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "a551ade4-e5a0-4d83-b185-53b515ad2f2a"),
+			elastic.MatchPhrase("fields.ward", "district"),
+		)),
+		[]int64{8},
+	},
+	{
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "a551ade4-e5a0-4d83-b185-53b515ad2f2a"),
+			elastic.Match("fields.ward_keyword", "central district"),
+		)),
+		[]int64{8},
+	},
+	{ // no substring though on keyword
+		elastic.Nested("fields", elastic.All(
+			elastic.Match("fields.field", "a551ade4-e5a0-4d83-b185-53b515ad2f2a"),
+			elastic.Match("fields.ward_keyword", "district"),
+		)),
+		[]int64{},
+	},
+	{elastic.Match("group_ids", 1), []int64{1}},
+	{elastic.Match("group_ids", 4), []int64{1, 2}},
+	{elastic.Match("group_ids", 2), []int64{}},
 }
 
 func TestContacts(t *testing.T) {
@@ -90,7 +193,7 @@ func TestContacts(t *testing.T) {
 	assertIndexesWithPrefix(t, cfg, aliasName, []string{expectedIndexName})
 
 	for _, tc := range contactQueryTests {
-		assertQuery(t, cfg, []byte(tc.query), tc.expected, "query mismatch for %s", tc.query)
+		assertQuery(t, cfg, tc.query, tc.expected, "query mismatch for %s", tc.query)
 	}
 
 	lastModified, err := ix1.GetESLastModified(indexName)
@@ -115,10 +218,10 @@ func TestContacts(t *testing.T) {
 	assertIndexesWithPrefix(t, cfg, aliasName, []string{expectedIndexName})
 
 	// should only match new john, old john is gone
-	assertQuery(t, cfg, []byte(`{"match": {"name": {"query": "john"}}}`), []int64{2})
+	assertQuery(t, cfg, elastic.Match("name", "john"), []int64{2})
 
 	// 3 is no longer in our group
-	assertQuery(t, cfg, []byte(`{"match": {"group_ids": {"query": 4}}}`), []int64{1})
+	assertQuery(t, cfg, elastic.Match("group_ids", 4), []int64{1})
 
 	// change John's name to Eric..
 	_, err = db.Exec(`
@@ -139,7 +242,7 @@ func TestContacts(t *testing.T) {
 	assertIndexesWithPrefix(t, cfg, aliasName, []string{expectedIndexName, expectedIndexName + "_1"})
 
 	// and the alias points to the new index
-	assertQuery(t, cfg, []byte(`{"match": {"name": {"query": "eric"}}}`), []int64{2})
+	assertQuery(t, cfg, elastic.Match("name", "eric"), []int64{2})
 
 	// simulate another indexer doing a parallel rebuild with cleanup
 	ix3 := indexers.NewContactIndexer(cfg.ElasticURL, aliasName, 2, 1, 4)

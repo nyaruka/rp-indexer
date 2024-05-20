@@ -3,7 +3,6 @@ package indexers_test
 import (
 	"bytes"
 	"database/sql"
-	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
 	indexer "github.com/nyaruka/rp-indexer/v9"
@@ -59,9 +59,9 @@ func setup(t *testing.T) (*indexer.Config, *sql.DB) {
 	return cfg, db
 }
 
-func assertQuery(t *testing.T, cfg *indexer.Config, query []byte, expected []int64, msgAndArgs ...interface{}) {
+func assertQuery(t *testing.T, cfg *indexer.Config, query elastic.Query, expected []int64, msgAndArgs ...interface{}) {
 	results := elasticRequest(t, cfg, http.MethodPost, "/"+aliasName+"/_search",
-		map[string]any{"query": json.RawMessage(query), "sort": []map[string]any{{"id": "asc"}}},
+		map[string]any{"query": query, "sort": []map[string]any{{"id": "asc"}}},
 	)
 	hits := results["hits"].(map[string]any)["hits"].([]any)
 

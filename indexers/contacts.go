@@ -7,8 +7,6 @@ import (
 	_ "embed"
 	"fmt"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 //go:embed contacts.index.json
@@ -51,7 +49,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error
 	if physicalIndex == "" || rebuild {
 		physicalIndex, err = i.createNewIndex(i.definition)
 		if err != nil {
-			return "", errors.Wrap(err, "error creating new index")
+			return "", fmt.Errorf("error creating new index: %w", err)
 		}
 		i.log().Info("created new physical index", "index", physicalIndex)
 		remapAlias = true
@@ -59,7 +57,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error
 
 	lastModified, err := i.GetESLastModified(physicalIndex)
 	if err != nil {
-		return "", errors.Wrap(err, "error finding last modified")
+		return "", fmt.Errorf("error finding last modified: %w", err)
 	}
 
 	i.log().Debug("indexing newer than last modified", "index", physicalIndex, "last_modified", lastModified)
@@ -68,7 +66,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error
 	start := time.Now()
 	indexed, deleted, err := i.indexModified(ctx, db, physicalIndex, lastModified.Add(-5*time.Second), rebuild)
 	if err != nil {
-		return "", errors.Wrap(err, "error indexing documents")
+		return "", fmt.Errorf("error indexing documents: %w", err)
 	}
 
 	i.recordComplete(indexed, deleted, time.Since(start))
@@ -77,7 +75,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error
 	if remapAlias {
 		err := i.updateAlias(physicalIndex)
 		if err != nil {
-			return "", errors.Wrap(err, "error updating alias")
+			return "", fmt.Errorf("error updating alias: %w", err)
 		}
 		remapAlias = false
 	}
@@ -86,7 +84,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error
 	if cleanup {
 		err := i.cleanupIndexes()
 		if err != nil {
-			return "", errors.Wrap(err, "error cleaning up old indexes")
+			return "", fmt.Errorf("error cleaning up old indexes: %w", err)
 		}
 	}
 

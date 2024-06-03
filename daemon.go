@@ -3,13 +3,13 @@ package indexer
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/nyaruka/gocommon/analytics"
 	"github.com/nyaruka/rp-indexer/v9/indexers"
-	"github.com/pkg/errors"
 )
 
 type Daemon struct {
@@ -148,12 +148,12 @@ func (d *Daemon) reportStats(includeLag bool) {
 func (d *Daemon) calculateLag(ctx context.Context, ix indexers.Indexer) (time.Duration, error) {
 	esLastModified, err := ix.GetESLastModified(ix.Name())
 	if err != nil {
-		return 0, errors.Wrap(err, "error getting ES last modified")
+		return 0, fmt.Errorf("error getting ES last modified: %w", err)
 	}
 
 	dbLastModified, err := ix.GetDBLastModified(ctx, d.db)
 	if err != nil {
-		return 0, errors.Wrap(err, "error getting DB last modified")
+		return 0, fmt.Errorf("error getting DB last modified: %w", err)
 	}
 
 	return dbLastModified.Sub(esLastModified), nil

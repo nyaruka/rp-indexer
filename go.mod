@@ -7,7 +7,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/nyaruka/ezconf v0.3.0
 	github.com/nyaruka/gocommon v1.55.5
-	github.com/samber/slog-multi v1.0.3
+	github.com/samber/slog-multi v1.1.0
 	github.com/samber/slog-sentry v1.2.2
 	github.com/stretchr/testify v1.9.0
 )
@@ -18,8 +18,6 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.4 // indirect
 	github.com/go-chi/chi/v5 v5.0.12 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
-	github.com/hashicorp/errwrap v1.0.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1 // indirect

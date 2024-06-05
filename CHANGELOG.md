@@ -1,3 +1,9 @@
+v9.1.8 (2024-06-05)
+-------------------------
+ * Update github actions versions
+ * Add healthcheck for elastic service in CI tests
+ * Update goreleaser config to v2
+
 v9.1.7 (2024-06-05)
 -------------------------
  * Remove multi-search-db CI testing because it's unreliable

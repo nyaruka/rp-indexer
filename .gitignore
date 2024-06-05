@@ -5,7 +5,7 @@
 *.dylib
 fabfile.py
 fabfile.pyc
-deploy/
+deploy
 rp-indexer
 
 # Test binary, build with `go test -c`
@@ -20,3 +20,4 @@ rp-indexer
 *~
 
 .DS_Store
+dist/

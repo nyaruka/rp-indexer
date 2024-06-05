@@ -24,7 +24,7 @@ jobs:
           xpack.security.enabled: false
         ports:
           - 9200:9200
-        options: --ulimit memlock=-1:-1 --ulimit nofile=65536:65536
+        options: --health-cmd "curl http://localhost:9200/_cluster/health" --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
       - name: Checkout code
@@ -52,17 +52,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.go-version }}
 
       - name: Publish release
-        uses: goreleaser/goreleaser-action@v4
+        uses: goreleaser/goreleaser-action@v6
         with:
           args: release --clean
         env:

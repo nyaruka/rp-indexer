@@ -1,3 +1,7 @@
+v9.1.7 (2024-06-05)
+-------------------------
+ * Remove multi-search-db CI testing because it's unreliable
+
 v9.1.6 (2024-06-04)
 -------------------------
  * Remove opensearch from CI

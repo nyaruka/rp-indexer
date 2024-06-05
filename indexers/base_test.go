@@ -21,20 +21,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const aliasName = "indexer_test"
-
-func getenv(key, def string) string {
-	val := os.Getenv(key)
-	if val == "" {
-		return def
-	}
-	return val
-}
-
 func setup(t *testing.T) (*indexer.Config, *sql.DB) {
 	cfg := indexer.NewDefaultConfig()
-	cfg.DB = getenv("INDEXER_DB", "postgres://indexer_test:temba@localhost:5432/indexer_test?sslmode=disable")
-	cfg.ElasticURL = getenv("INDEXER_ELASTIC_URL", "http://localhost:9200")
+	cfg.DB = "postgres://indexer_test:temba@localhost:5432/indexer_test?sslmode=disable"
+	cfg.ContactsIndex = "indexer_test"
 
 	testDB, err := os.ReadFile("../testdb.sql")
 	require.NoError(t, err)
@@ -49,7 +39,7 @@ func setup(t *testing.T) (*indexer.Config, *sql.DB) {
 	existing := elasticRequest(t, cfg, http.MethodGet, "/_aliases", nil)
 
 	for name := range existing {
-		if strings.HasPrefix(name, aliasName) {
+		if strings.HasPrefix(name, cfg.ContactsIndex) {
 			elasticRequest(t, cfg, http.MethodDelete, "/"+name, nil)
 		}
 	}
@@ -60,7 +50,7 @@ func setup(t *testing.T) (*indexer.Config, *sql.DB) {
 }
 
 func assertQuery(t *testing.T, cfg *indexer.Config, query elastic.Query, expected []int64, msgAndArgs ...interface{}) {
-	results := elasticRequest(t, cfg, http.MethodPost, "/"+aliasName+"/_search",
+	results := elasticRequest(t, cfg, http.MethodPost, "/"+cfg.ContactsIndex+"/_search",
 		map[string]any{"query": query, "sort": []map[string]any{{"id": "asc"}}},
 	)
 	hits := results["hits"].(map[string]any)["hits"].([]any)

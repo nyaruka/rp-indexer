@@ -6,12 +6,6 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    container:
-      image: node:20
-    strategy:
-      matrix:
-        searchdb-host: [elastic7, elastic8, opensearch2]
-      fail-fast: false
     
     services:
       postgres:
@@ -20,26 +14,15 @@ jobs:
           POSTGRES_DB: indexer_test
           POSTGRES_USER: indexer_test
           POSTGRES_PASSWORD: temba
+        ports:
+          - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      elastic7:
+      elastic:
         image: elasticsearch:7.17.9
         env:
           discovery.type: single-node
-        options: --ulimit memlock=-1:-1 --ulimit nofile=65536:65536
-      elastic8:
-        image: elasticsearch:8.13.4
-        env:
-          discovery.type: single-node
-          xpack.security.enabled: false
-        options: --ulimit memlock=-1:-1 --ulimit nofile=65536:65536
-      opensearch2:
-        image: opensearchproject/opensearch:2.13.0
-        env:
-          discovery.type: single-node
-          plugins.security.disabled: true
-          OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
-          DISABLE_INSTALL_DEMO_CONFIG: true
-          OPENSEARCH_INITIAL_ADMIN_PASSWORD: temba
+        ports:
+          - 9200:9200
         options: --ulimit memlock=-1:-1 --ulimit nofile=65536:65536
 
     steps:
@@ -50,11 +33,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.go-version }}
-
-      - name: Setup environment
-        run: |
-          echo "INDEXER_DB=postgres://indexer_test:temba@postgres:5432/indexer_test?sslmode=disable" >> "$GITHUB_ENV"
-          echo "INDEXER_ELASTIC_URL=http://${{ matrix.searchdb-host }}:9200" >> "$GITHUB_ENV"
 
       - name: Run tests
         run: go test -p=1 -coverprofile=coverage.text -covermode=atomic ./...

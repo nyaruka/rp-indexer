@@ -267,20 +267,23 @@ type indexResponse struct {
 }
 
 // indexes the batch of contacts
-func (i *baseIndexer) indexBatch(index string, batch []byte) (int, int, error) {
+func (i *baseIndexer) indexBatch(index string, batch []byte) (int, int, int, error) {
 	response := indexResponse{}
 	indexURL := fmt.Sprintf("%s/%s/_bulk", i.elasticURL, index)
 
 	_, err := utils.MakeJSONRequest(http.MethodPut, indexURL, batch, &response)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 
-	createdCount, deletedCount, conflictedCount := 0, 0, 0
+	createdCount, updatedCount, deletedCount, conflictedCount := 0, 0, 0, 0
+
 	for _, item := range response.Items {
 		if item.Index.ID != "" {
 			slog.Debug("index response", "id", item.Index.ID, "status", item.Index.Status)
-			if item.Index.Status == 200 || item.Index.Status == 201 {
+			if item.Index.Status == 200 {
+				updatedCount++
+			} else if item.Index.Status == 201 {
 				createdCount++
 			} else if item.Index.Status == 409 {
 				conflictedCount++
@@ -298,8 +301,10 @@ func (i *baseIndexer) indexBatch(index string, batch []byte) (int, int, error) {
 			slog.Error("unparsed item in response")
 		}
 	}
-	slog.Debug("indexed batch", "created", createdCount, "deleted", deletedCount, "conflicted", conflictedCount)
-	return createdCount, deletedCount, nil
+
+	slog.Debug("indexed batch", "created", createdCount, "updated", updatedCount, "deleted", deletedCount, "conflicted", conflictedCount)
+
+	return createdCount, updatedCount, deletedCount, nil
 }
 
 // our response for finding the last modified document

@@ -1,3 +1,9 @@
+v9.1.9 (2024-06-10)
+-------------------------
+ * Record stats inside indexing batch loop
+ * Split up created vs updated in progress logging
+ * Add track_total_hits to GetESLastModified
+
 v9.1.8 (2024-06-05)
 -------------------------
  * Update github actions versions

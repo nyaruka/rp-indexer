@@ -326,7 +326,7 @@ func (i *baseIndexer) GetESLastModified(index string) (time.Time, error) {
 	_, err := utils.MakeJSONRequest(
 		http.MethodPost,
 		fmt.Sprintf("%s/%s/_search", i.elasticURL, index),
-		[]byte(`{ "sort": [{ "modified_on_mu": "desc" }], "_source": {"includes": ["modified_on", "id"]}, "size": 1}`),
+		[]byte(`{ "sort": [{ "modified_on_mu": "desc" }], "_source": {"includes": ["modified_on", "id"]}, "size": 1, "track_total_hits": false}`),
 		queryResponse,
 	)
 	if err != nil {

@@ -24,7 +24,7 @@ const deleteCommand = `{ "delete" : { "_id": %d, "version": %d, "version_type": 
 type Stats struct {
 	Indexed int64         // total number of documents indexed
 	Deleted int64         // total number of documents deleted
-	Elapsed time.Duration // total time spent actually indexing
+	Elapsed time.Duration // total time spent actually indexing (excludes poll delay)
 }
 
 // Indexer is base interface for indexers
@@ -84,8 +84,8 @@ func (i *baseIndexer) log() *slog.Logger {
 	return slog.With("indexer", i.name)
 }
 
-// records a complete index and updates statistics
-func (i *baseIndexer) recordComplete(indexed, deleted int, elapsed time.Duration) {
+// records indexing activity and updates statistics
+func (i *baseIndexer) recordActivity(indexed, deleted int, elapsed time.Duration) {
 	i.stats.Indexed += int64(indexed)
 	i.stats.Deleted += int64(deleted)
 	i.stats.Elapsed += elapsed

@@ -46,40 +46,7 @@ For use with RapidPro, you will want to configure these settings:
  
 Recommended settings for error reporting:
 
- * `INDEXER_SENTRY_DSN`: The DSN to use when logging errors to Sentry
-
-### Reference
-
-These are the configuration options that can be provided as parameters or environment variables. If using environment 
-varibles, convert to uppercase, replace dashes with underscores and prefix the name with `INDEXER_`, e.g. `-log-level` 
-becomes `INDEXER_LOG_LEVEL`.
-
-```
-  -cleanup
-      whether to remove old indexes after a rebuild
-  -db string
-      the connection string for our database (default "postgres://localhost/rapidpro?sslmode=disable")
-  -debug-conf
-      print where config values are coming from
-  -elastic-url string
-      the url for our elastic search instance (default "http://localhost:9200")
-  -help
-      print usage information
-  -index string
-      the alias for our contact index (default "contacts")
-  -librato-username
-      the Librato username for metrics reporting
-  -librato-token
-      the Librato token for metrics reporting
-  -log-level string
-      the log level, one of error, warn, info, debug (default "info")
-  -poll int
-      the number of seconds to wait between checking for updated contacts (default 5)
-  -rebuild
-      whether to rebuild the index, swapping it when complete, then exiting (default false)
-  -sentry-dsn string
-      the sentry configuration to log errors to, if any
-```
+ * `INDEXER_SENTRY_DSN`: DSN to use when logging errors to Sentry
 
 ## Development
 

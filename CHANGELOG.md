@@ -1,3 +1,9 @@
+v9.2.0 (2024-07-17)
+-------------------------
+ * Test against postgresql 15
+ * Update dependencies
+ * Test against Elasticsearch 8
+
 v9.1.9 (2024-06-10)
 -------------------------
  * Record stats inside indexing batch loop

@@ -189,7 +189,7 @@ func TestContacts(t *testing.T) {
 	assert.NoError(t, err)
 	assert.WithinDuration(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), esModified, 0)
 
-	assertIndexerStats(t, ix1, 9, 0)
+	assertIndexerStats(t, ix1, 9)
 	assertIndexesWithPrefix(t, cfg, cfg.ContactsIndex, []string{expectedIndexName})
 
 	for _, tc := range contactQueryTests {
@@ -200,25 +200,24 @@ func TestContacts(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), lastModified.In(time.UTC))
 
-	// now make some contact changes, removing one contact, updating another
+	// now make some contact changes
 	_, err = db.Exec(`
 	DELETE FROM contacts_contactgroup_contacts WHERE id = 3;
-	UPDATE contacts_contact SET name = 'John Deer', modified_on = '2020-08-20 14:00:00+00' where id = 2;
-	UPDATE contacts_contact SET is_active = FALSE, modified_on = '2020-08-22 15:00:00+00' where id = 4;`)
+	UPDATE contacts_contact SET name = 'John Deer', modified_on = '2020-08-20 14:00:00+00' where id = 2;`)
 	require.NoError(t, err)
 
 	// and index again...
 	indexName, err = ix1.Index(db, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName, indexName) // same index used
-	assertIndexerStats(t, ix1, 10, 1)
+	assertIndexerStats(t, ix1, 10)
 
 	time.Sleep(1 * time.Second)
 
 	assertIndexesWithPrefix(t, cfg, cfg.ContactsIndex, []string{expectedIndexName})
 
-	// should only match new john, old john is gone
-	assertQuery(t, cfg, elastic.Match("name", "john"), []int64{2})
+	// still have two johns
+	assertQuery(t, cfg, elastic.Match("name", "john"), []int64{2, 4})
 
 	// 3 is no longer in our group
 	assertQuery(t, cfg, elastic.Match("group_ids", 4), []int64{1})
@@ -234,7 +233,7 @@ func TestContacts(t *testing.T) {
 	indexName2, err := ix2.Index(db, true, false)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_1", indexName2) // new index used
-	assertIndexerStats(t, ix2, 8, 0)
+	assertIndexerStats(t, ix2, 9)
 
 	time.Sleep(1 * time.Second)
 
@@ -249,7 +248,7 @@ func TestContacts(t *testing.T) {
 	indexName3, err := ix3.Index(db, true, true)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_2", indexName3) // new index used
-	assertIndexerStats(t, ix3, 8, 0)
+	assertIndexerStats(t, ix3, 9)
 
 	// check we cleaned up indexes besides the new one
 	assertIndexesWithPrefix(t, cfg, cfg.ContactsIndex, []string{expectedIndexName + "_2"})

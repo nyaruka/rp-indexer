@@ -18,12 +18,8 @@ import (
 // indexes a document
 const indexCommand = `{ "index": { "_id": %d, "version": %d, "version_type": "external", "routing": %d} }`
 
-// deletes a document
-const deleteCommand = `{ "delete" : { "_id": %d, "version": %d, "version_type": "external", "routing": %d} }`
-
 type Stats struct {
 	Indexed int64         // total number of documents indexed
-	Deleted int64         // total number of documents deleted
 	Elapsed time.Duration // total time spent actually indexing (excludes poll delay)
 }
 
@@ -85,12 +81,11 @@ func (i *baseIndexer) log() *slog.Logger {
 }
 
 // records indexing activity and updates statistics
-func (i *baseIndexer) recordActivity(indexed, deleted int, elapsed time.Duration) {
+func (i *baseIndexer) recordActivity(indexed int, elapsed time.Duration) {
 	i.stats.Indexed += int64(indexed)
-	i.stats.Deleted += int64(deleted)
 	i.stats.Elapsed += elapsed
 
-	i.log().Info("completed indexing", "indexed", indexed, "deleted", deleted, "elapsed", elapsed)
+	i.log().Info("completed indexing", "indexed", indexed, "elapsed", elapsed)
 }
 
 // our response for figuring out the physical index for an alias
@@ -267,16 +262,16 @@ type indexResponse struct {
 }
 
 // indexes the batch of contacts
-func (i *baseIndexer) indexBatch(index string, batch []byte) (int, int, int, error) {
+func (i *baseIndexer) indexBatch(index string, batch []byte) (int, int, error) {
 	response := indexResponse{}
 	indexURL := fmt.Sprintf("%s/%s/_bulk", i.elasticURL, index)
 
 	_, err := utils.MakeJSONRequest(http.MethodPut, indexURL, batch, &response)
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, err
 	}
 
-	createdCount, updatedCount, deletedCount, conflictedCount := 0, 0, 0, 0
+	createdCount, updatedCount, conflictedCount := 0, 0, 0
 
 	for _, item := range response.Items {
 		if item.Index.ID != "" {
@@ -290,21 +285,14 @@ func (i *baseIndexer) indexBatch(index string, batch []byte) (int, int, int, err
 			} else {
 				slog.Error("error indexing document", "id", item.Index.ID, "status", item.Index.Status, "result", item.Index.Result)
 			}
-		} else if item.Delete.ID != "" {
-			slog.Debug("delete response", "id", item.Index.ID, "status", item.Index.Status)
-			if item.Delete.Status == 200 {
-				deletedCount++
-			} else if item.Delete.Status == 409 {
-				conflictedCount++
-			}
 		} else {
 			slog.Error("unparsed item in response")
 		}
 	}
 
-	slog.Debug("indexed batch", "created", createdCount, "updated", updatedCount, "deleted", deletedCount, "conflicted", conflictedCount)
+	slog.Debug("indexed batch", "created", createdCount, "updated", updatedCount, "conflicted", conflictedCount)
 
-	return createdCount, updatedCount, deletedCount, nil
+	return createdCount, updatedCount, nil
 }
 
 // our response for finding the last modified document

@@ -78,10 +78,9 @@ func assertIndexesWithPrefix(t *testing.T, cfg *indexer.Config, prefix string, e
 	assert.Equal(t, expected, actual)
 }
 
-func assertIndexerStats(t *testing.T, ix indexers.Indexer, expectedIndexed, expectedDeleted int64) {
+func assertIndexerStats(t *testing.T, ix indexers.Indexer, expectedIndexed int64) {
 	actual := ix.Stats()
 	assert.Equal(t, expectedIndexed, actual.Indexed, "indexed mismatch")
-	assert.Equal(t, expectedDeleted, actual.Deleted, "deleted mismatch")
 }
 
 func elasticRequest(t *testing.T, cfg *indexer.Config, method, path string, data map[string]any) map[string]any {

@@ -1,3 +1,7 @@
+v9.2.1 (2024-10-08)
+-------------------------
+ * Don't include status groups in contact indexing
+
 v9.2.0 (2024-07-17)
 -------------------------
  * Test against postgresql 15

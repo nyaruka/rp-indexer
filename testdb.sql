@@ -42,7 +42,8 @@ DROP TABLE IF EXISTS contacts_contactgroup CASCADE;
 CREATE TABLE contacts_contactgroup (
     id SERIAL PRIMARY KEY,
     uuid character varying(36) NOT NULL,
-    name character varying(128) NOT NULL
+    name character varying(128) NOT NULL,
+    group_type character varying(1) NOT NULL
 );
 
 DROP TABLE IF EXISTS contacts_contactgroup_contacts CASCADE;
@@ -151,16 +152,19 @@ INSERT INTO contacts_contacturn(id, contact_id, scheme, org_id, priority, path, 
 (10, 9, 'twitterid', 2, 90, 1000001, 'fungal', 'twitterid:1000001'),
 (11, 10, 'whatsapp',  2, 90, 1000003, NULL, 'whatsapp:1000003');
 
-INSERT INTO contacts_contactgroup(id, uuid, name) VALUES
-(1, '4ea0f313-2f62-4e57-bdf0-232b5191dd57', 'Group 1'),
-(2, '4c016340-468d-4675-a974-15cb7a45a5ab', 'Group 2'),
-(3, 'e61b5bf7-8ddf-4e05-b0a8-4c46a6b68cff', 'Group 3'),
-(4, '529bac39-550a-4d6f-817c-1833f3449007', 'Group 4');
+INSERT INTO contacts_contactgroup(id, uuid, name, group_type) VALUES
+(1, '4ea0f313-2f62-4e57-bdf0-232b5191dd57', 'Group 1', 'Q'),
+(2, '4c016340-468d-4675-a974-15cb7a45a5ab', 'Group 2', 'M'),
+(3, 'e61b5bf7-8ddf-4e05-b0a8-4c46a6b68cff', 'Group 3', 'Q'),
+(4, '529bac39-550a-4d6f-817c-1833f3449007', 'Group 4', 'M'),
+(5, '004c982b-859e-4e7b-9c30-e38c0e6b6537', 'Active', 'A');
 
 INSERT INTO contacts_contactgroup_contacts(id, contact_id, contactgroup_id) VALUES
 (1, 1, 1),
 (2, 1, 4),
-(3, 2, 4);
+(3, 1, 5),
+(4, 2, 4),
+(5, 2, 5);
 
 INSERT INTO flows_flowrun(id, uuid, flow_id, contact_id) VALUES
 (1, '8b30ee61-e19d-427e-bb9f-4b8cd2c31d0c', 1, 1),

@@ -136,7 +136,10 @@ SELECT org_id, id, modified_on, is_active, row_to_json(t) FROM (
 			) AS f
 		) AS fields,
 		(
-			SELECT array_to_json(array_agg(gc.contactgroup_id)) FROM contacts_contactgroup_contacts gc WHERE gc.contact_id = contacts_contact.id
+			SELECT array_to_json(array_agg(gc.contactgroup_id)) 
+			FROM contacts_contactgroup_contacts gc 
+			INNER JOIN contacts_contactgroup g ON g.id = gc.contactgroup_id
+			WHERE gc.contact_id = contacts_contact.id AND g.group_type IN ('M', 'Q')
 		) AS group_ids,
 		current_flow_id AS flow_id,
 		(

@@ -161,6 +161,7 @@ var contactQueryTests = []struct {
 	{elastic.Match("group_ids", 1), []int64{1}},
 	{elastic.Match("group_ids", 4), []int64{1, 2}},
 	{elastic.Match("group_ids", 2), []int64{}},
+	{elastic.Match("group_ids", 5), []int64{}}, // wrong group type
 }
 
 func TestContacts(t *testing.T) {
@@ -202,7 +203,7 @@ func TestContacts(t *testing.T) {
 
 	// now make some contact changes, removing one contact, updating another
 	_, err = db.Exec(`
-	DELETE FROM contacts_contactgroup_contacts WHERE id = 3;
+	DELETE FROM contacts_contactgroup_contacts WHERE contact_id = 2 AND contactgroup_id = 4;
 	UPDATE contacts_contact SET name = 'John Deer', modified_on = '2020-08-20 14:00:00+00' where id = 2;
 	UPDATE contacts_contact SET is_active = FALSE, modified_on = '2020-08-22 15:00:00+00' where id = 4;`)
 	require.NoError(t, err)

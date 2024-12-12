@@ -3,13 +3,21 @@ package runtime
 import "os"
 
 type Config struct {
-	ElasticURL      string `help:"the url for our elastic search instance"`
-	DB              string `help:"the connection string for our database"`
-	Poll            int    `help:"the number of seconds to wait between checking for database updates"`
-	Rebuild         bool   `help:"whether to rebuild the index, swapping it when complete, then exiting (default false)"`
-	Cleanup         bool   `help:"whether to remove old indexes after a rebuild"`
-	LogLevel        string `help:"the log level, one of error, warn, info, debug"`
-	SentryDSN       string `help:"the sentry configuration to log errors to, if any"`
+	ElasticURL string `help:"the url for our elastic search instance"`
+	DB         string `help:"the connection string for our database"`
+	Poll       int    `help:"the number of seconds to wait between checking for database updates"`
+	Rebuild    bool   `help:"whether to rebuild the index, swapping it when complete, then exiting (default false)"`
+	Cleanup    bool   `help:"whether to remove old indexes after a rebuild"`
+	LogLevel   string `help:"the log level, one of error, warn, info, debug"`
+	SentryDSN  string `help:"the sentry configuration to log errors to, if any"`
+
+	AWSAccessKeyID     string `help:"access key ID to use for AWS services"`
+	AWSSecretAccessKey string `help:"secret access key to use for AWS services"`
+	AWSRegion          string `help:"region to use for AWS services, e.g. us-east-1"`
+
+	CloudwatchNamespace string `help:"the namespace to use for cloudwatch metrics"`
+	Deployment          string `help:"the deployment identifier to use for metrics"`
+
 	LibratoUsername string `help:"the username that will be used to authenticate to Librato"`
 	LibratoToken    string `help:"the token that will be used to authenticate to Librato"`
 	InstanceName    string `help:"the unique name of this instance used for analytics"`
@@ -23,12 +31,20 @@ func NewDefaultConfig() *Config {
 	hostname, _ := os.Hostname()
 
 	return &Config{
-		ElasticURL:   "http://localhost:9200",
-		DB:           "postgres://localhost/temba?sslmode=disable",
-		Poll:         5,
-		Rebuild:      false,
-		Cleanup:      false,
-		LogLevel:     "info",
+		ElasticURL: "http://localhost:9200",
+		DB:         "postgres://localhost/temba?sslmode=disable",
+		Poll:       5,
+		Rebuild:    false,
+		Cleanup:    false,
+		LogLevel:   "info",
+
+		AWSAccessKeyID:     "",
+		AWSSecretAccessKey: "",
+		AWSRegion:          "us-east-1",
+
+		CloudwatchNamespace: "Temba",
+		Deployment:          "dev",
+
 		InstanceName: hostname,
 
 		ContactsIndex:    "contacts",

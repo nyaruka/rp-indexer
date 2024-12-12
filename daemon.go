@@ -2,7 +2,6 @@ package indexer
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -10,11 +9,11 @@ import (
 
 	"github.com/nyaruka/gocommon/analytics"
 	"github.com/nyaruka/rp-indexer/v9/indexers"
+	"github.com/nyaruka/rp-indexer/v9/runtime"
 )
 
 type Daemon struct {
-	cfg      *Config
-	db       *sql.DB
+	rt       *runtime.Runtime
 	wg       *sync.WaitGroup
 	quit     chan bool
 	indexers []indexers.Indexer
@@ -24,14 +23,13 @@ type Daemon struct {
 }
 
 // NewDaemon creates a new daemon to run the given indexers
-func NewDaemon(cfg *Config, db *sql.DB, ixs []indexers.Indexer, poll time.Duration) *Daemon {
+func NewDaemon(rt *runtime.Runtime, ixs []indexers.Indexer) *Daemon {
 	return &Daemon{
-		cfg:       cfg,
-		db:        db,
+		rt:        rt,
 		wg:        &sync.WaitGroup{},
 		quit:      make(chan bool),
 		indexers:  ixs,
-		poll:      poll,
+		poll:      time.Duration(rt.Config.Poll) * time.Second,
 		prevStats: make(map[indexers.Indexer]indexers.Stats, len(ixs)),
 	}
 }
@@ -39,8 +37,8 @@ func NewDaemon(cfg *Config, db *sql.DB, ixs []indexers.Indexer, poll time.Durati
 // Start starts this daemon
 func (d *Daemon) Start() {
 	// if we have a librato token, configure it
-	if d.cfg.LibratoToken != "" {
-		analytics.RegisterBackend(analytics.NewLibrato(d.cfg.LibratoUsername, d.cfg.LibratoToken, d.cfg.InstanceName, time.Second, d.wg))
+	if d.rt.Config.LibratoToken != "" {
+		analytics.RegisterBackend(analytics.NewLibrato(d.rt.Config.LibratoUsername, d.rt.Config.LibratoToken, d.rt.Config.InstanceName, time.Second, d.wg))
 	}
 
 	analytics.Start()
@@ -68,7 +66,7 @@ func (d *Daemon) startIndexer(indexer indexers.Indexer) {
 			case <-d.quit:
 				return
 			case <-time.After(d.poll):
-				_, err := indexer.Index(d.db, d.cfg.Rebuild, d.cfg.Cleanup)
+				_, err := indexer.Index(d.rt, d.rt.Config.Rebuild, d.rt.Config.Cleanup)
 				if err != nil {
 					log.Error("error during indexing", "error", err)
 				}
@@ -151,7 +149,7 @@ func (d *Daemon) calculateLag(ctx context.Context, ix indexers.Indexer) (time.Du
 		return 0, fmt.Errorf("error getting ES last modified: %w", err)
 	}
 
-	dbLastModified, err := ix.GetDBLastModified(ctx, d.db)
+	dbLastModified, err := ix.GetDBLastModified(ctx, d.rt.DB)
 	if err != nil {
 		return 0, fmt.Errorf("error getting DB last modified: %w", err)
 	}

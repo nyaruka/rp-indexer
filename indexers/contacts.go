@@ -7,6 +7,8 @@ import (
 	_ "embed"
 	"fmt"
 	"time"
+
+	"github.com/nyaruka/rp-indexer/v9/runtime"
 )
 
 //go:embed contacts.index.json
@@ -30,7 +32,7 @@ func NewContactIndexer(elasticURL, name string, shards, replicas, batchSize int)
 }
 
 // Index indexes modified contacts and returns the name of the concrete index
-func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error) {
+func (i *ContactIndexer) Index(rt *runtime.Runtime, rebuild, cleanup bool) (string, error) {
 	ctx := context.TODO()
 	var err error
 
@@ -63,7 +65,7 @@ func (i *ContactIndexer) Index(db *sql.DB, rebuild, cleanup bool) (string, error
 	i.log().Debug("indexing newer than last modified", "index", physicalIndex, "last_modified", lastModified)
 
 	// now index our docs
-	err = i.indexModified(ctx, db, physicalIndex, lastModified.Add(-5*time.Second), rebuild)
+	err = i.indexModified(ctx, rt.DB, physicalIndex, lastModified.Add(-5*time.Second), rebuild)
 	if err != nil {
 		return "", fmt.Errorf("error indexing documents: %w", err)
 	}

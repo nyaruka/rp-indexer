@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/rp-indexer/v9/runtime"
 	"github.com/nyaruka/rp-indexer/v9/utils"
 )
 
@@ -30,7 +31,7 @@ type Stats struct {
 // Indexer is base interface for indexers
 type Indexer interface {
 	Name() string
-	Index(db *sql.DB, rebuild, cleanup bool) (string, error)
+	Index(rt *runtime.Runtime, rebuild, cleanup bool) (string, error)
 	Stats() Stats
 
 	GetESLastModified(index string) (time.Time, error)

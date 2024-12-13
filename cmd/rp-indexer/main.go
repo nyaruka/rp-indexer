@@ -75,8 +75,8 @@ func main() {
 		logger.Error("unable to connect to database")
 	}
 
-	if rt.Config.Deployment != "dev" {
-		rt.CW, err = cwatch.NewService(rt.Config.AWSAccessKeyID, rt.Config.AWSSecretAccessKey, rt.Config.AWSRegion, rt.Config.CloudwatchNamespace, rt.Config.Deployment)
+	if rt.Config.DeploymentID != "dev" {
+		rt.CW, err = cwatch.NewService(rt.Config.AWSAccessKeyID, rt.Config.AWSSecretAccessKey, rt.Config.AWSRegion, rt.Config.CloudwatchNamespace, rt.Config.DeploymentID)
 		if err != nil {
 			logger.Error("unable to create cloudwatch service")
 		}

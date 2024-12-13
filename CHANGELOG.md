@@ -1,3 +1,7 @@
+v9.3.1 (2024-12-13)
+-------------------------
+ * Remove librato, use latest gocommon
+
 v9.3.0 (2024-12-13)
 -------------------------
  * Send metrics to cloudwatch

@@ -1,3 +1,7 @@
+v9.3.3 (2024-12-13)
+-------------------------
+ * Clean up old analytics use
+
 v9.3.2 (2024-12-13)
 -------------------------
  * Update to latest gocommon

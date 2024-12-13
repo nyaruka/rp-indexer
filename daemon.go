@@ -146,7 +146,7 @@ func (d *Daemon) reportStats(includeLag bool) {
 		log = log.With(k, v)
 	}
 
-	if _, err := d.rt.CW.Client.PutMetricData(ctx, d.rt.CW.Prepare(metrics)); err != nil {
+	if err := d.rt.CW.Send(ctx, metrics...); err != nil {
 		log.Error("error putting metrics", "error", err)
 	}
 

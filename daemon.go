@@ -2,19 +2,20 @@ package indexer
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/nyaruka/gocommon/analytics"
 	"github.com/nyaruka/rp-indexer/v9/indexers"
+	"github.com/nyaruka/rp-indexer/v9/runtime"
 )
 
 type Daemon struct {
-	cfg      *Config
-	db       *sql.DB
+	rt       *runtime.Runtime
 	wg       *sync.WaitGroup
 	quit     chan bool
 	indexers []indexers.Indexer
@@ -24,27 +25,19 @@ type Daemon struct {
 }
 
 // NewDaemon creates a new daemon to run the given indexers
-func NewDaemon(cfg *Config, db *sql.DB, ixs []indexers.Indexer, poll time.Duration) *Daemon {
+func NewDaemon(rt *runtime.Runtime, ixs []indexers.Indexer) *Daemon {
 	return &Daemon{
-		cfg:       cfg,
-		db:        db,
+		rt:        rt,
 		wg:        &sync.WaitGroup{},
 		quit:      make(chan bool),
 		indexers:  ixs,
-		poll:      poll,
+		poll:      time.Duration(rt.Config.Poll) * time.Second,
 		prevStats: make(map[indexers.Indexer]indexers.Stats, len(ixs)),
 	}
 }
 
 // Start starts this daemon
 func (d *Daemon) Start() {
-	// if we have a librato token, configure it
-	if d.cfg.LibratoToken != "" {
-		analytics.RegisterBackend(analytics.NewLibrato(d.cfg.LibratoUsername, d.cfg.LibratoToken, d.cfg.InstanceName, time.Second, d.wg))
-	}
-
-	analytics.Start()
-
 	for _, i := range d.indexers {
 		d.startIndexer(i)
 	}
@@ -68,7 +61,7 @@ func (d *Daemon) startIndexer(indexer indexers.Indexer) {
 			case <-d.quit:
 				return
 			case <-time.After(d.poll):
-				_, err := indexer.Index(d.db, d.cfg.Rebuild, d.cfg.Cleanup)
+				_, err := indexer.Index(d.rt, d.rt.Config.Rebuild, d.rt.Config.Cleanup)
 				if err != nil {
 					log.Error("error during indexing", "error", err)
 				}
@@ -107,7 +100,8 @@ func (d *Daemon) reportStats(includeLag bool) {
 	defer cancel()
 
 	log := slog.New(slog.Default().Handler())
-	metrics := make(map[string]float64, len(d.indexers)*2)
+	guages := make(map[string]float64, len(d.indexers)*3)
+	metrics := make([]types.MetricDatum, 0, len(d.indexers)*3)
 
 	for _, ix := range d.indexers {
 		stats := ix.Stats()
@@ -121,9 +115,17 @@ func (d *Daemon) reportStats(includeLag bool) {
 			rateInPeriod = float64(indexedInPeriod) / (float64(elapsedInPeriod) / float64(time.Second))
 		}
 
-		metrics[ix.Name()+"_indexed"] = float64(indexedInPeriod)
-		metrics[ix.Name()+"_deleted"] = float64(deletedInPeriod)
-		metrics[ix.Name()+"_rate"] = rateInPeriod
+		guages[ix.Name()+"_indexed"] = float64(indexedInPeriod)
+		guages[ix.Name()+"_deleted"] = float64(deletedInPeriod)
+		guages[ix.Name()+"_rate"] = rateInPeriod
+
+		dims := []types.Dimension{{Name: aws.String("Index"), Value: aws.String(ix.Name())}}
+
+		metrics = append(metrics,
+			types.MetricDatum{MetricName: aws.String("IndexerIndexed"), Dimensions: dims, Value: aws.Float64(float64(indexedInPeriod)), Unit: types.StandardUnitCount},
+			types.MetricDatum{MetricName: aws.String("IndexerDeleted"), Dimensions: dims, Value: aws.Float64(float64(deletedInPeriod)), Unit: types.StandardUnitCount},
+			types.MetricDatum{MetricName: aws.String("IndexerRate"), Dimensions: dims, Value: aws.Float64(rateInPeriod), Unit: types.StandardUnitCountSecond},
+		)
 
 		d.prevStats[ix] = stats
 
@@ -132,14 +134,20 @@ func (d *Daemon) reportStats(includeLag bool) {
 			if err != nil {
 				log.Error("error getting db last modified", "index", ix.Name(), "error", err)
 			} else {
-				metrics[ix.Name()+"_lag"] = lag.Seconds()
+				guages[ix.Name()+"_lag"] = lag.Seconds()
+
+				metrics = append(metrics, types.MetricDatum{MetricName: aws.String("IndexerLag"), Dimensions: dims, Value: aws.Float64(lag.Seconds()), Unit: types.StandardUnitSeconds})
 			}
 		}
 	}
 
-	for k, v := range metrics {
+	for k, v := range guages {
 		analytics.Gauge("indexer."+k, v)
 		log = log.With(k, v)
+	}
+
+	if _, err := d.rt.CW.Client.PutMetricData(ctx, d.rt.CW.Prepare(metrics)); err != nil {
+		log.Error("error putting metrics", "error", err)
 	}
 
 	log.Info("stats reported")
@@ -151,7 +159,7 @@ func (d *Daemon) calculateLag(ctx context.Context, ix indexers.Indexer) (time.Du
 		return 0, fmt.Errorf("error getting ES last modified: %w", err)
 	}
 
-	dbLastModified, err := ix.GetDBLastModified(ctx, d.db)
+	dbLastModified, err := ix.GetDBLastModified(ctx, d.rt.DB)
 	if err != nil {
 		return 0, fmt.Errorf("error getting DB last modified: %w", err)
 	}

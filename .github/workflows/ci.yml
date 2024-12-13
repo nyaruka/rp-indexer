@@ -1,7 +1,7 @@
 name: CI
 on: [push, pull_request]
 env:
-  go-version: "1.22.x"
+  go-version: "1.23.x"
 jobs:
   test:
     name: Test
@@ -9,7 +9,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:14-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_DB: indexer_test
           POSTGRES_USER: indexer_test
@@ -25,9 +25,6 @@ jobs:
           OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
           DISABLE_INSTALL_DEMO_CONFIG: true
           OPENSEARCH_INITIAL_ADMIN_PASSWORD: temba
-        ports:
-          - 9200:9200
-        options: --health-cmd "curl http://localhost:9200/_cluster/health" --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
       - name: Checkout code

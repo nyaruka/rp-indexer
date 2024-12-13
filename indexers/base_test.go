@@ -15,14 +15,14 @@ import (
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
-	indexer "github.com/nyaruka/rp-indexer/v9"
 	"github.com/nyaruka/rp-indexer/v9/indexers"
+	"github.com/nyaruka/rp-indexer/v9/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setup(t *testing.T) (*indexer.Config, *sql.DB) {
-	cfg := indexer.NewDefaultConfig()
+func setup(t *testing.T) *runtime.Runtime {
+	cfg := runtime.NewDefaultConfig()
 	cfg.DB = "postgres://indexer_test:temba@localhost:5432/indexer_test?sslmode=disable"
 	cfg.ContactsIndex = "indexer_test"
 
@@ -46,10 +46,10 @@ func setup(t *testing.T) (*indexer.Config, *sql.DB) {
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
 
-	return cfg, db
+	return &runtime.Runtime{Config: cfg, DB: db}
 }
 
-func assertQuery(t *testing.T, cfg *indexer.Config, query elastic.Query, expected []int64, msgAndArgs ...interface{}) {
+func assertQuery(t *testing.T, cfg *runtime.Config, query elastic.Query, expected []int64, msgAndArgs ...interface{}) {
 	results := elasticRequest(t, cfg, http.MethodPost, "/"+cfg.ContactsIndex+"/_search",
 		map[string]any{"query": query, "sort": []map[string]any{{"id": "asc"}}},
 	)
@@ -65,7 +65,7 @@ func assertQuery(t *testing.T, cfg *indexer.Config, query elastic.Query, expecte
 	assert.Equal(t, expected, actual, msgAndArgs...)
 }
 
-func assertIndexesWithPrefix(t *testing.T, cfg *indexer.Config, prefix string, expected []string) {
+func assertIndexesWithPrefix(t *testing.T, cfg *runtime.Config, prefix string, expected []string) {
 	all := elasticRequest(t, cfg, http.MethodGet, "/_aliases", nil)
 
 	actual := []string{}
@@ -84,7 +84,7 @@ func assertIndexerStats(t *testing.T, ix indexers.Indexer, expectedIndexed, expe
 	assert.Equal(t, expectedDeleted, actual.Deleted, "deleted mismatch")
 }
 
-func elasticRequest(t *testing.T, cfg *indexer.Config, method, path string, data map[string]any) map[string]any {
+func elasticRequest(t *testing.T, cfg *runtime.Config, method, path string, data map[string]any) map[string]any {
 	var body io.Reader
 	if data != nil {
 		body = bytes.NewReader(jsonx.MustMarshal(data))

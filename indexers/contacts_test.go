@@ -161,39 +161,40 @@ var contactQueryTests = []struct {
 	{elastic.Match("group_ids", 1), []int64{1}},
 	{elastic.Match("group_ids", 4), []int64{1, 2}},
 	{elastic.Match("group_ids", 2), []int64{}},
+	{elastic.Match("group_ids", 5), []int64{}}, // wrong group type
 }
 
 func TestContacts(t *testing.T) {
-	cfg, db := setup(t)
+	rt := setup(t)
 
-	ix1 := indexers.NewContactIndexer(cfg.ElasticURL, cfg.ContactsIndex, 2, 1, 4)
+	ix1 := indexers.NewContactIndexer(rt.Config.ElasticURL, rt.Config.ContactsIndex, 2, 1, 4)
 	assert.Equal(t, "indexer_test", ix1.Name())
 
-	dbModified, err := ix1.GetDBLastModified(context.Background(), db)
+	dbModified, err := ix1.GetDBLastModified(context.Background(), rt.DB)
 	assert.NoError(t, err)
 	assert.WithinDuration(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), dbModified, 0)
 
 	// error trying to get ES last modified on before index exists
-	_, err = ix1.GetESLastModified(cfg.ContactsIndex)
+	_, err = ix1.GetESLastModified(rt.Config.ContactsIndex)
 	assert.Error(t, err)
 
 	expectedIndexName := fmt.Sprintf("indexer_test_%s", time.Now().Format("2006_01_02"))
 
-	indexName, err := ix1.Index(db, false, false)
+	indexName, err := ix1.Index(rt, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName, indexName)
 
 	time.Sleep(1 * time.Second)
 
-	esModified, err := ix1.GetESLastModified(cfg.ContactsIndex)
+	esModified, err := ix1.GetESLastModified(rt.Config.ContactsIndex)
 	assert.NoError(t, err)
 	assert.WithinDuration(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), esModified, 0)
 
 	assertIndexerStats(t, ix1, 9, 0)
-	assertIndexesWithPrefix(t, cfg, cfg.ContactsIndex, []string{expectedIndexName})
+	assertIndexesWithPrefix(t, rt.Config, rt.Config.ContactsIndex, []string{expectedIndexName})
 
 	for _, tc := range contactQueryTests {
-		assertQuery(t, cfg, tc.query, tc.expected, "query mismatch for %s", tc.query)
+		assertQuery(t, rt.Config, tc.query, tc.expected, "query mismatch for %s", tc.query)
 	}
 
 	lastModified, err := ix1.GetESLastModified(indexName)
@@ -201,37 +202,37 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), lastModified.In(time.UTC))
 
 	// now make some contact changes, removing one contact, updating another
-	_, err = db.Exec(`
-	DELETE FROM contacts_contactgroup_contacts WHERE id = 3;
+	_, err = rt.DB.Exec(`
+	DELETE FROM contacts_contactgroup_contacts WHERE contact_id = 2 AND contactgroup_id = 4;
 	UPDATE contacts_contact SET name = 'John Deer', modified_on = '2020-08-20 14:00:00+00' where id = 2;
 	UPDATE contacts_contact SET is_active = FALSE, modified_on = '2020-08-22 15:00:00+00' where id = 4;`)
 	require.NoError(t, err)
 
 	// and index again...
-	indexName, err = ix1.Index(db, false, false)
+	indexName, err = ix1.Index(rt, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName, indexName) // same index used
 	assertIndexerStats(t, ix1, 10, 1)
 
 	time.Sleep(1 * time.Second)
 
-	assertIndexesWithPrefix(t, cfg, cfg.ContactsIndex, []string{expectedIndexName})
+	assertIndexesWithPrefix(t, rt.Config, rt.Config.ContactsIndex, []string{expectedIndexName})
 
 	// should only match new john, old john is gone
-	assertQuery(t, cfg, elastic.Match("name", "john"), []int64{2})
+	assertQuery(t, rt.Config, elastic.Match("name", "john"), []int64{2})
 
 	// 3 is no longer in our group
-	assertQuery(t, cfg, elastic.Match("group_ids", 4), []int64{1})
+	assertQuery(t, rt.Config, elastic.Match("group_ids", 4), []int64{1})
 
 	// change John's name to Eric..
-	_, err = db.Exec(`
+	_, err = rt.DB.Exec(`
 	UPDATE contacts_contact SET name = 'Eric', modified_on = '2020-08-20 14:00:00+00' where id = 2;`)
 	require.NoError(t, err)
 
 	// and simulate another indexer doing a parallel rebuild
-	ix2 := indexers.NewContactIndexer(cfg.ElasticURL, cfg.ContactsIndex, 2, 1, 4)
+	ix2 := indexers.NewContactIndexer(rt.Config.ElasticURL, rt.Config.ContactsIndex, 2, 1, 4)
 
-	indexName2, err := ix2.Index(db, true, false)
+	indexName2, err := ix2.Index(rt, true, false)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_1", indexName2) // new index used
 	assertIndexerStats(t, ix2, 8, 0)
@@ -239,23 +240,23 @@ func TestContacts(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// check we have a new index but the old index is still around
-	assertIndexesWithPrefix(t, cfg, cfg.ContactsIndex, []string{expectedIndexName, expectedIndexName + "_1"})
+	assertIndexesWithPrefix(t, rt.Config, rt.Config.ContactsIndex, []string{expectedIndexName, expectedIndexName + "_1"})
 
 	// and the alias points to the new index
-	assertQuery(t, cfg, elastic.Match("name", "eric"), []int64{2})
+	assertQuery(t, rt.Config, elastic.Match("name", "eric"), []int64{2})
 
 	// simulate another indexer doing a parallel rebuild with cleanup
-	ix3 := indexers.NewContactIndexer(cfg.ElasticURL, cfg.ContactsIndex, 2, 1, 4)
-	indexName3, err := ix3.Index(db, true, true)
+	ix3 := indexers.NewContactIndexer(rt.Config.ElasticURL, rt.Config.ContactsIndex, 2, 1, 4)
+	indexName3, err := ix3.Index(rt, true, true)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_2", indexName3) // new index used
 	assertIndexerStats(t, ix3, 8, 0)
 
 	// check we cleaned up indexes besides the new one
-	assertIndexesWithPrefix(t, cfg, cfg.ContactsIndex, []string{expectedIndexName + "_2"})
+	assertIndexesWithPrefix(t, rt.Config, rt.Config.ContactsIndex, []string{expectedIndexName + "_2"})
 
 	// check that the original indexer now indexes against the new index
-	indexName, err = ix1.Index(db, false, false)
+	indexName, err = ix1.Index(rt, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIndexName+"_2", indexName)
 }

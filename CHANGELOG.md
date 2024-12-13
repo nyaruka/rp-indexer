@@ -1,3 +1,17 @@
+v9.3.0 (2024-12-13)
+-------------------------
+ * Send metrics to cloudwatch
+
+v9.2.1 (2024-10-08)
+-------------------------
+ * Don't include status groups in contact indexing
+
+v9.2.0 (2024-07-17)
+-------------------------
+ * Test against postgresql 15
+ * Update dependencies
+ * Test against Elasticsearch 8
+
 v9.1.9 (2024-06-10)
 -------------------------
  * Record stats inside indexing batch loop

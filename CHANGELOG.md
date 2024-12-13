@@ -1,3 +1,7 @@
+v9.3.2 (2024-12-13)
+-------------------------
+ * Update to latest gocommon
+
 v9.3.1 (2024-12-13)
 -------------------------
  * Remove librato, use latest gocommon

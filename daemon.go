@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
-	"github.com/nyaruka/gocommon/analytics"
 	"github.com/nyaruka/rp-indexer/v9/indexers"
 	"github.com/nyaruka/rp-indexer/v9/runtime"
 )
@@ -78,7 +77,7 @@ func (d *Daemon) startStatsReporter(interval time.Duration) {
 
 	go func() {
 		defer func() {
-			slog.Info("analytics exiting")
+			slog.Info("metrics reporter exiting")
 			d.wg.Done()
 		}()
 
@@ -100,7 +99,6 @@ func (d *Daemon) reportStats(includeLag bool) {
 	defer cancel()
 
 	log := slog.New(slog.Default().Handler())
-	guages := make(map[string]float64, len(d.indexers)*3)
 	metrics := make([]types.MetricDatum, 0, len(d.indexers)*3)
 
 	for _, ix := range d.indexers {
@@ -114,10 +112,6 @@ func (d *Daemon) reportStats(includeLag bool) {
 		if indexedInPeriod > 0 && elapsedInPeriod > 0 {
 			rateInPeriod = float64(indexedInPeriod) / (float64(elapsedInPeriod) / float64(time.Second))
 		}
-
-		guages[ix.Name()+"_indexed"] = float64(indexedInPeriod)
-		guages[ix.Name()+"_deleted"] = float64(deletedInPeriod)
-		guages[ix.Name()+"_rate"] = rateInPeriod
 
 		dims := []types.Dimension{{Name: aws.String("Index"), Value: aws.String(ix.Name())}}
 
@@ -134,16 +128,10 @@ func (d *Daemon) reportStats(includeLag bool) {
 			if err != nil {
 				log.Error("error getting db last modified", "index", ix.Name(), "error", err)
 			} else {
-				guages[ix.Name()+"_lag"] = lag.Seconds()
 
 				metrics = append(metrics, types.MetricDatum{MetricName: aws.String("IndexerLag"), Dimensions: dims, Value: aws.Float64(lag.Seconds()), Unit: types.StandardUnitSeconds})
 			}
 		}
-	}
-
-	for k, v := range guages {
-		analytics.Gauge("indexer."+k, v)
-		log = log.With(k, v)
 	}
 
 	if err := d.rt.CW.Send(ctx, metrics...); err != nil {
@@ -170,7 +158,6 @@ func (d *Daemon) calculateLag(ctx context.Context, ix indexers.Indexer) (time.Du
 // Stop stops this daemon
 func (d *Daemon) Stop() {
 	slog.Info("daemon stopping")
-	analytics.Stop()
 
 	close(d.quit)
 	d.wg.Wait()

@@ -1,3 +1,7 @@
+v9.3.0 (2024-12-13)
+-------------------------
+ * Send metrics to cloudwatch
+
 v9.2.1 (2024-10-08)
 -------------------------
  * Don't include status groups in contact indexing

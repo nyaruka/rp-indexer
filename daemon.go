@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/nyaruka/gocommon/analytics"
 	"github.com/nyaruka/rp-indexer/v9/indexers"
 	"github.com/nyaruka/rp-indexer/v9/runtime"
@@ -105,7 +107,8 @@ func (d *Daemon) reportStats(includeLag bool) {
 	defer cancel()
 
 	log := slog.New(slog.Default().Handler())
-	metrics := make(map[string]float64, len(d.indexers)*2)
+	guages := make(map[string]float64, len(d.indexers)*3)
+	metrics := make([]types.MetricDatum, 0, len(d.indexers)*3)
 
 	for _, ix := range d.indexers {
 		stats := ix.Stats()
@@ -119,9 +122,17 @@ func (d *Daemon) reportStats(includeLag bool) {
 			rateInPeriod = float64(indexedInPeriod) / (float64(elapsedInPeriod) / float64(time.Second))
 		}
 
-		metrics[ix.Name()+"_indexed"] = float64(indexedInPeriod)
-		metrics[ix.Name()+"_deleted"] = float64(deletedInPeriod)
-		metrics[ix.Name()+"_rate"] = rateInPeriod
+		guages[ix.Name()+"_indexed"] = float64(indexedInPeriod)
+		guages[ix.Name()+"_deleted"] = float64(deletedInPeriod)
+		guages[ix.Name()+"_rate"] = rateInPeriod
+
+		dims := []types.Dimension{{Name: aws.String("Index"), Value: aws.String(ix.Name())}}
+
+		metrics = append(metrics,
+			types.MetricDatum{MetricName: aws.String("IndexerIndexed"), Dimensions: dims, Value: aws.Float64(float64(indexedInPeriod)), Unit: types.StandardUnitCount},
+			types.MetricDatum{MetricName: aws.String("IndexerDeleted"), Dimensions: dims, Value: aws.Float64(float64(deletedInPeriod)), Unit: types.StandardUnitCount},
+			types.MetricDatum{MetricName: aws.String("IndexerRate"), Dimensions: dims, Value: aws.Float64(rateInPeriod), Unit: types.StandardUnitCountSecond},
+		)
 
 		d.prevStats[ix] = stats
 
@@ -130,14 +141,20 @@ func (d *Daemon) reportStats(includeLag bool) {
 			if err != nil {
 				log.Error("error getting db last modified", "index", ix.Name(), "error", err)
 			} else {
-				metrics[ix.Name()+"_lag"] = lag.Seconds()
+				guages[ix.Name()+"_lag"] = lag.Seconds()
+
+				metrics = append(metrics, types.MetricDatum{MetricName: aws.String("IndexerLag"), Dimensions: dims, Value: aws.Float64(lag.Seconds()), Unit: types.StandardUnitSeconds})
 			}
 		}
 	}
 
-	for k, v := range metrics {
+	for k, v := range guages {
 		analytics.Gauge("indexer."+k, v)
 		log = log.With(k, v)
+	}
+
+	if _, err := d.rt.CW.Client.PutMetricData(ctx, d.rt.CW.Prepare(metrics)); err != nil {
+		log.Error("error putting metrics", "error", err)
 	}
 
 	log.Info("stats reported")

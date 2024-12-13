@@ -12,6 +12,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	_ "github.com/lib/pq"
 	"github.com/nyaruka/ezconf"
+	"github.com/nyaruka/gocommon/aws/cwatch"
 	indexer "github.com/nyaruka/rp-indexer/v9"
 	"github.com/nyaruka/rp-indexer/v9/indexers"
 	"github.com/nyaruka/rp-indexer/v9/runtime"
@@ -72,6 +73,13 @@ func main() {
 	rt.DB, err = sql.Open("postgres", cfg.DB)
 	if err != nil {
 		logger.Error("unable to connect to database")
+	}
+
+	if rt.Config.DeploymentID != "dev" {
+		rt.CW, err = cwatch.NewService(rt.Config.AWSAccessKeyID, rt.Config.AWSSecretAccessKey, rt.Config.AWSRegion, rt.Config.CloudwatchNamespace, rt.Config.DeploymentID)
+		if err != nil {
+			logger.Error("unable to create cloudwatch service")
+		}
 	}
 
 	idxrs := []indexers.Indexer{

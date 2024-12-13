@@ -16,7 +16,7 @@ type Config struct {
 	AWSRegion          string `help:"region to use for AWS services, e.g. us-east-1"`
 
 	CloudwatchNamespace string `help:"the namespace to use for cloudwatch metrics"`
-	Deployment          string `help:"the deployment identifier to use for metrics"`
+	DeploymentID        string `help:"the deployment identifier to use for metrics"`
 
 	LibratoUsername string `help:"the username that will be used to authenticate to Librato"`
 	LibratoToken    string `help:"the token that will be used to authenticate to Librato"`
@@ -43,7 +43,7 @@ func NewDefaultConfig() *Config {
 		AWSRegion:          "us-east-1",
 
 		CloudwatchNamespace: "Temba",
-		Deployment:          "dev",
+		DeploymentID:        "dev",
 
 		InstanceName: hostname,
 

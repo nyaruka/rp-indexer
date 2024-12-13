@@ -38,13 +38,6 @@ func NewDaemon(rt *runtime.Runtime, ixs []indexers.Indexer) *Daemon {
 
 // Start starts this daemon
 func (d *Daemon) Start() {
-	// if we have a librato token, configure it
-	if d.rt.Config.LibratoToken != "" {
-		analytics.RegisterBackend(analytics.NewLibrato(d.rt.Config.LibratoUsername, d.rt.Config.LibratoToken, d.rt.Config.InstanceName, time.Second, d.wg))
-	}
-
-	analytics.Start()
-
 	for _, i := range d.indexers {
 		d.startIndexer(i)
 	}

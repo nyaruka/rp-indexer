@@ -44,9 +44,6 @@ func main() {
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})
 	slog.SetDefault(slog.New(logHandler))
 
-	logger := slog.With("comp", "main")
-	logger.Info("starting indexer", "version", version, "released", date)
-
 	// if we have a DSN entry, try to initialize it
 	if rt.Config.SentryDSN != "" {
 		err := sentry.Init(sentry.ClientOptions{
@@ -60,7 +57,7 @@ func main() {
 
 		defer sentry.Flush(2 * time.Second)
 
-		logger = slog.New(
+		logger := slog.New(
 			slogmulti.Fanout(
 				logHandler,
 				slogsentry.Option{Level: slog.LevelError}.NewSentryHandler(),
@@ -70,16 +67,17 @@ func main() {
 		slog.SetDefault(logger)
 	}
 
+	log := slog.With("comp", "main")
+	log.Info("starting indexer", "version", version, "released", date)
+
 	rt.DB, err = sql.Open("postgres", cfg.DB)
 	if err != nil {
-		logger.Error("unable to connect to database")
+		log.Error("unable to connect to database", "error", err)
 	}
 
-	if rt.Config.DeploymentID != "dev" {
-		rt.CW, err = cwatch.NewService(rt.Config.AWSAccessKeyID, rt.Config.AWSSecretAccessKey, rt.Config.AWSRegion, rt.Config.CloudwatchNamespace, rt.Config.DeploymentID)
-		if err != nil {
-			logger.Error("unable to create cloudwatch service")
-		}
+	rt.CW, err = cwatch.NewService(rt.Config.AWSAccessKeyID, rt.Config.AWSSecretAccessKey, rt.Config.AWSRegion, rt.Config.CloudwatchNamespace, rt.Config.DeploymentID)
+	if err != nil {
+		log.Error("unable to create cloudwatch service", "error", err)
 	}
 
 	idxrs := []indexers.Indexer{
@@ -91,7 +89,7 @@ func main() {
 		// the rebuild argument can be become the name of the index to rebuild, e.g. --rebuild=contacts
 		idxr := idxrs[0]
 		if _, err := idxr.Index(rt, true, rt.Config.Cleanup); err != nil {
-			logger.Error("error during rebuilding", "error", err, "indexer", idxr.Name())
+			log.Error("error during rebuilding", "error", err, "indexer", idxr.Name())
 		}
 	} else {
 		d := indexer.NewDaemon(rt, idxrs)

@@ -1,7 +1,5 @@
 package runtime
 
-import "os"
-
 type Config struct {
 	ElasticURL string `help:"the url for our elastic search instance"`
 	DB         string `help:"the connection string for our database"`
@@ -18,18 +16,12 @@ type Config struct {
 	CloudwatchNamespace string `help:"the namespace to use for cloudwatch metrics"`
 	DeploymentID        string `help:"the deployment identifier to use for metrics"`
 
-	LibratoUsername string `help:"the username that will be used to authenticate to Librato"`
-	LibratoToken    string `help:"the token that will be used to authenticate to Librato"`
-	InstanceName    string `help:"the unique name of this instance used for analytics"`
-
 	ContactsIndex    string `help:"the alias to use for the contact index"`
 	ContactsShards   int    `help:"the number of shards to use for the contacts index"`
 	ContactsReplicas int    `help:"the number of replicas to use for the contacts index"`
 }
 
 func NewDefaultConfig() *Config {
-	hostname, _ := os.Hostname()
-
 	return &Config{
 		ElasticURL: "http://localhost:9200",
 		DB:         "postgres://localhost/temba?sslmode=disable",
@@ -44,8 +36,6 @@ func NewDefaultConfig() *Config {
 
 		CloudwatchNamespace: "Temba",
 		DeploymentID:        "dev",
-
-		InstanceName: hostname,
 
 		ContactsIndex:    "contacts",
 		ContactsShards:   2,

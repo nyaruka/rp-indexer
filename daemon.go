@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/rp-indexer/v9/indexers"
 	"github.com/nyaruka/rp-indexer/v9/runtime"
 )
@@ -113,12 +113,12 @@ func (d *Daemon) reportStats(includeLag bool) {
 			rateInPeriod = float64(indexedInPeriod) / (float64(elapsedInPeriod) / float64(time.Second))
 		}
 
-		dims := []types.Dimension{{Name: aws.String("Index"), Value: aws.String(ix.Name())}}
+		idxDim := cwatch.Dimension("Index", ix.Name())
 
 		metrics = append(metrics,
-			types.MetricDatum{MetricName: aws.String("IndexerIndexed"), Dimensions: dims, Value: aws.Float64(float64(indexedInPeriod)), Unit: types.StandardUnitCount},
-			types.MetricDatum{MetricName: aws.String("IndexerDeleted"), Dimensions: dims, Value: aws.Float64(float64(deletedInPeriod)), Unit: types.StandardUnitCount},
-			types.MetricDatum{MetricName: aws.String("IndexerRate"), Dimensions: dims, Value: aws.Float64(rateInPeriod), Unit: types.StandardUnitCountSecond},
+			cwatch.Datum("RecordsIndexed", float64(indexedInPeriod), types.StandardUnitCount, idxDim),
+			cwatch.Datum("RecordsDeleted", float64(deletedInPeriod), types.StandardUnitCount, idxDim),
+			cwatch.Datum("IndexingRate", rateInPeriod, types.StandardUnitCountSecond, idxDim),
 		)
 
 		d.prevStats[ix] = stats
@@ -128,8 +128,7 @@ func (d *Daemon) reportStats(includeLag bool) {
 			if err != nil {
 				log.Error("error getting db last modified", "index", ix.Name(), "error", err)
 			} else {
-
-				metrics = append(metrics, types.MetricDatum{MetricName: aws.String("IndexerLag"), Dimensions: dims, Value: aws.Float64(lag.Seconds()), Unit: types.StandardUnitSeconds})
+				metrics = append(metrics, cwatch.Datum("IndexingLag", lag.Seconds(), types.StandardUnitSeconds, idxDim))
 			}
 		}
 	}

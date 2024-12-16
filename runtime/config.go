@@ -34,7 +34,7 @@ func NewDefaultConfig() *Config {
 		AWSSecretAccessKey: "",
 		AWSRegion:          "us-east-1",
 
-		CloudwatchNamespace: "Temba",
+		CloudwatchNamespace: "Temba/Indexer",
 		DeploymentID:        "dev",
 
 		ContactsIndex:    "contacts",

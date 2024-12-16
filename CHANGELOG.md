@@ -1,3 +1,7 @@
+v9.3.4 (2024-12-16)
+-------------------------
+ * Update to latest gocommon and tweak default cloudwatch namespace
+
 v9.3.3 (2024-12-13)
 -------------------------
  * Clean up old analytics use

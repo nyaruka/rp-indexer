@@ -1,3 +1,7 @@
+v10.0.0 (2025-01-07)
+-------------------------
+ * Update README.md
+
 v9.3.4 (2024-12-16)
 -------------------------
  * Update to latest gocommon and tweak default cloudwatch namespace

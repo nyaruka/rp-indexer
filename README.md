@@ -48,6 +48,7 @@ environment variables and parameters and for more details on each option.
  
 ### Logging and error reporting:
 
+ * `INDEXER_DEPLOYMENT_ID`: used for metrics reporting
  * `INDEXER_SENTRY_DSN`: DSN to use when logging errors to Sentry
  * `INDEXER_LOG_LEVEL`: logging level to use (default is `info`)
 

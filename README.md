@@ -43,7 +43,7 @@ environment variables and parameters and for more details on each option.
 ### AWS services:
 
  * `INDEXER_AWS_ACCESS_KEY_ID`: AWS access key id used to authenticate to AWS
- * `INDEXER_AWS_SECRET_ACCESS_KEY` AWS secret access key used to authenticate to AWS
+ * `INDEXER_AWS_SECRET_ACCESS_KEY`: AWS secret access key used to authenticate to AWS
  * `INDEXER_AWS_REGION`: AWS region (ex: `eu-west-1`)
  
 ### Logging and error reporting:

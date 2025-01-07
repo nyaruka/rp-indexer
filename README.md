@@ -37,16 +37,19 @@ We recommend running it with no changes to the configuration and no parameters, 
 environment variables to configure it. You can use `% rp-indexer --help` to see a list of the
 environment variables and parameters and for more details on each option.
 
-### RapidPro
-
-For use with RapidPro, you will want to configure these settings:
-
  * `INDEXER_DB`: a URL connection string for your RapidPro database or read replica
  * `INDEXER_ELASTIC_URL`: the URL for your ElasticSearch endpoint
+
+### AWS services:
+
+ * `INDEXER_AWS_ACCESS_KEY_ID`: AWS access key id used to authenticate to AWS
+ * `INDEXER_AWS_SECRET_ACCESS_KEY` AWS secret access key used to authenticate to AWS
+ * `INDEXER_AWS_REGION`: AWS region (ex: `eu-west-1`)
  
-Recommended settings for error reporting:
+### Logging and error reporting:
 
  * `INDEXER_SENTRY_DSN`: DSN to use when logging errors to Sentry
+ * `INDEXER_LOG_LEVEL`: logging level to use (default is `info`)
 
 ## Development
 

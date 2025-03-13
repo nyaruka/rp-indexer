@@ -13,9 +13,9 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/nyaruka/ezconf"
 	"github.com/nyaruka/gocommon/aws/cwatch"
-	indexer "github.com/nyaruka/rp-indexer/v9"
-	"github.com/nyaruka/rp-indexer/v9/indexers"
-	"github.com/nyaruka/rp-indexer/v9/runtime"
+	indexer "github.com/nyaruka/rp-indexer/v10"
+	"github.com/nyaruka/rp-indexer/v10/indexers"
+	"github.com/nyaruka/rp-indexer/v10/runtime"
 	slogmulti "github.com/samber/slog-multi"
 	slogsentry "github.com/samber/slog-sentry/v2"
 )

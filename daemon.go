@@ -9,8 +9,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/nyaruka/gocommon/aws/cwatch"
-	"github.com/nyaruka/rp-indexer/v9/indexers"
-	"github.com/nyaruka/rp-indexer/v9/runtime"
+	"github.com/nyaruka/rp-indexer/v10/indexers"
+	"github.com/nyaruka/rp-indexer/v10/runtime"
 )
 
 type Daemon struct {

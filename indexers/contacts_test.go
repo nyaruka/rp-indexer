@@ -8,7 +8,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/nyaruka/gocommon/elastic"
-	"github.com/nyaruka/rp-indexer/v9/indexers"
+	"github.com/nyaruka/rp-indexer/v10/indexers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

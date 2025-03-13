@@ -1,3 +1,9 @@
+v10.1.0 (2025-03-13)
+-------------------------
+ * Bump package name to v10
+ * Update to go 1.24
+ * Update deps
+
 v10.0.0 (2025-01-07)
 -------------------------
  * Update README.md

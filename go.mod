@@ -1,7 +1,6 @@
 module github.com/nyaruka/rp-indexer/v9
 
 go 1.23
-
 require (
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.43.3
 	github.com/getsentry/sentry-go v0.30.0
@@ -42,9 +41,9 @@ require (
 	github.com/samber/lo v1.47.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e // indirect
-	golang.org/x/net v0.32.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/net v0.36.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	google.golang.org/protobuf v1.36.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -9,7 +9,7 @@ require (
 	github.com/nyaruka/ezconf v0.3.0
 	github.com/nyaruka/gocommon v1.60.5
 	github.com/samber/slog-multi v1.4.0
-	github.com/samber/slog-sentry v1.2.2
+	github.com/samber/slog-sentry/v2 v2.9.3
 	github.com/stretchr/testify v1.10.0
 )
 
@@ -39,6 +39,7 @@ require (
 	github.com/nyaruka/phonenumbers v1.5.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/samber/lo v1.49.1 // indirect
+	github.com/samber/slog-common v0.18.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/net v0.37.0 // indirect

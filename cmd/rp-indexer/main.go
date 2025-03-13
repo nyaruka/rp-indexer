@@ -17,7 +17,7 @@ import (
 	"github.com/nyaruka/rp-indexer/v9/indexers"
 	"github.com/nyaruka/rp-indexer/v9/runtime"
 	slogmulti "github.com/samber/slog-multi"
-	slogsentry "github.com/samber/slog-sentry"
+	slogsentry "github.com/samber/slog-sentry/v2"
 )
 
 var (

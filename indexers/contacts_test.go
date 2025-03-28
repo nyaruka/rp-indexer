@@ -165,6 +165,7 @@ var contactQueryTests = []struct {
 }
 
 func TestContacts(t *testing.T) {
+	ctx := context.Background()
 	rt := setup(t)
 
 	ix1 := indexers.NewContactIndexer(rt.Config.ElasticURL, rt.Config.ContactsIndex, 2, 1, 4)
@@ -175,7 +176,7 @@ func TestContacts(t *testing.T) {
 	assert.WithinDuration(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), dbModified, 0)
 
 	// error trying to get ES last modified on before index exists
-	_, err = ix1.GetESLastModified(rt.Config.ContactsIndex)
+	_, err = ix1.GetESLastModified(ctx, rt.Config.ContactsIndex)
 	assert.Error(t, err)
 
 	expectedIndexName := fmt.Sprintf("indexer_test_%s", time.Now().Format("2006_01_02"))
@@ -186,7 +187,7 @@ func TestContacts(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	esModified, err := ix1.GetESLastModified(rt.Config.ContactsIndex)
+	esModified, err := ix1.GetESLastModified(ctx, rt.Config.ContactsIndex)
 	assert.NoError(t, err)
 	assert.WithinDuration(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), esModified, 0)
 
@@ -197,7 +198,7 @@ func TestContacts(t *testing.T) {
 		assertQuery(t, rt.Config, tc.query, tc.expected, "query mismatch for %s", tc.query)
 	}
 
-	lastModified, err := ix1.GetESLastModified(indexName)
+	lastModified, err := ix1.GetESLastModified(ctx, indexName)
 	assert.NoError(t, err)
 	assert.Equal(t, time.Date(2017, 11, 10, 21, 11, 59, 890662000, time.UTC), lastModified.In(time.UTC))
 

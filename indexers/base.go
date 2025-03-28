@@ -34,7 +34,7 @@ type Indexer interface {
 	Index(rt *runtime.Runtime, rebuild, cleanup bool) (string, error)
 	Stats() Stats
 
-	GetESLastModified(index string) (time.Time, error)
+	GetESLastModified(ctx context.Context, index string) (time.Time, error)
 	GetDBLastModified(ctx context.Context, db *sql.DB) (time.Time, error)
 }
 
@@ -98,9 +98,9 @@ func (i *baseIndexer) recordActivity(indexed, deleted int, elapsed time.Duration
 type infoResponse map[string]interface{}
 
 // FindIndexes finds all our physical indexes
-func (i *baseIndexer) FindIndexes() []string {
+func (i *baseIndexer) FindIndexes(ctx context.Context) []string {
 	response := infoResponse{}
-	_, err := utils.MakeJSONRequest(http.MethodGet, fmt.Sprintf("%s/%s", i.elasticURL, i.name), nil, &response)
+	_, err := utils.MakeJSONRequest(ctx, http.MethodGet, fmt.Sprintf("%s/%s", i.elasticURL, i.name), nil, &response)
 	indexes := make([]string, 0)
 
 	// error could mean a variety of things, but we'll figure that out later
@@ -128,7 +128,7 @@ func (i *baseIndexer) FindIndexes() []string {
 // that index to `contacts`.
 //
 // If the day-specific name already exists, we append a .1 or .2 to the name.
-func (i *baseIndexer) createNewIndex(def *IndexDefinition) (string, error) {
+func (i *baseIndexer) createNewIndex(ctx context.Context, def *IndexDefinition) (string, error) {
 	// create our day-specific name
 	index := fmt.Sprintf("%s_%s", i.name, time.Now().Format("2006_01_02"))
 	idx := 0
@@ -152,7 +152,7 @@ func (i *baseIndexer) createNewIndex(def *IndexDefinition) (string, error) {
 	// create the new index
 	settings := jsonx.MustMarshal(def)
 
-	_, err := utils.MakeJSONRequest(http.MethodPut, fmt.Sprintf("%s/%s", i.elasticURL, index), settings, nil)
+	_, err := utils.MakeJSONRequest(ctx, http.MethodPut, fmt.Sprintf("%s/%s", i.elasticURL, index), settings, nil)
 	if err != nil {
 		return "", err
 	}
@@ -185,11 +185,11 @@ type removeAliasCommand struct {
 }
 
 // maps this indexer's alias to the new physical index, removing existing aliases if they exist
-func (i *baseIndexer) updateAlias(newIndex string) error {
+func (i *baseIndexer) updateAlias(ctx context.Context, newIndex string) error {
 	commands := make([]interface{}, 0)
 
 	// find existing physical indexes
-	existing := i.FindIndexes()
+	existing := i.FindIndexes(ctx)
 	for _, idx := range existing {
 		remove := removeAliasCommand{}
 		remove.Remove.Alias = i.name
@@ -207,7 +207,7 @@ func (i *baseIndexer) updateAlias(newIndex string) error {
 
 	aliasJSON := jsonx.MustMarshal(aliasCommand{Actions: commands})
 
-	_, err := utils.MakeJSONRequest(http.MethodPost, fmt.Sprintf("%s/_aliases", i.elasticURL), aliasJSON, nil)
+	_, err := utils.MakeJSONRequest(ctx, http.MethodPost, fmt.Sprintf("%s/_aliases", i.elasticURL), aliasJSON, nil)
 
 	i.log().Info("updated alias", "index", newIndex)
 
@@ -222,9 +222,9 @@ type healthResponse struct {
 }
 
 // removes all indexes that are older than the currently active index
-func (i *baseIndexer) cleanupIndexes() error {
+func (i *baseIndexer) cleanupIndexes(ctx context.Context) error {
 	// find our current indexes
-	currents := i.FindIndexes()
+	currents := i.FindIndexes(ctx)
 
 	// no current indexes? this a noop
 	if len(currents) == 0 {
@@ -233,7 +233,7 @@ func (i *baseIndexer) cleanupIndexes() error {
 
 	// find all the current indexes
 	healthResponse := healthResponse{}
-	_, err := utils.MakeJSONRequest(http.MethodGet, fmt.Sprintf("%s/%s", i.elasticURL, "_cluster/health?level=indices"), nil, &healthResponse)
+	_, err := utils.MakeJSONRequest(ctx, http.MethodGet, fmt.Sprintf("%s/%s", i.elasticURL, "_cluster/health?level=indices"), nil, &healthResponse)
 	if err != nil {
 		return err
 	}
@@ -242,7 +242,7 @@ func (i *baseIndexer) cleanupIndexes() error {
 	for key := range healthResponse.Indices {
 		if strings.HasPrefix(key, i.name) && strings.Compare(key, currents[0]) < 0 {
 			slog.Info("removing old index", "index", key)
-			_, err = utils.MakeJSONRequest(http.MethodDelete, fmt.Sprintf("%s/%s", i.elasticURL, key), nil, nil)
+			_, err = utils.MakeJSONRequest(ctx, http.MethodDelete, fmt.Sprintf("%s/%s", i.elasticURL, key), nil, nil)
 			if err != nil {
 				return err
 			}
@@ -268,11 +268,11 @@ type indexResponse struct {
 }
 
 // indexes the batch of contacts
-func (i *baseIndexer) indexBatch(index string, batch []byte) (int, int, int, error) {
+func (i *baseIndexer) indexBatch(ctx context.Context, index string, batch []byte) (int, int, int, error) {
 	response := indexResponse{}
 	indexURL := fmt.Sprintf("%s/%s/_bulk", i.elasticURL, index)
 
-	_, err := utils.MakeJSONRequest(http.MethodPut, indexURL, batch, &response)
+	_, err := utils.MakeJSONRequest(ctx, http.MethodPut, indexURL, batch, &response)
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -324,12 +324,13 @@ type queryResponse struct {
 }
 
 // GetESLastModified queries a concrete index and finds the last modified document, returning its modified time
-func (i *baseIndexer) GetESLastModified(index string) (time.Time, error) {
+func (i *baseIndexer) GetESLastModified(ctx context.Context, index string) (time.Time, error) {
 	lastModified := time.Time{}
 
 	// get the newest document on our index
 	queryResponse := &queryResponse{}
 	_, err := utils.MakeJSONRequest(
+		ctx,
 		http.MethodPost,
 		fmt.Sprintf("%s/%s/_search", i.elasticURL, index),
 		[]byte(`{ "sort": [{ "modified_on_mu": "desc" }], "_source": {"includes": ["modified_on", "id"]}, "size": 1, "track_total_hits": false}`),

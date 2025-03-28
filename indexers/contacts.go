@@ -37,7 +37,7 @@ func (i *ContactIndexer) Index(rt *runtime.Runtime, rebuild, cleanup bool) (stri
 	var err error
 
 	// find our physical index
-	physicalIndexes := i.FindIndexes()
+	physicalIndexes := i.FindIndexes(ctx)
 
 	physicalIndex := ""
 	if len(physicalIndexes) > 0 {
@@ -49,7 +49,7 @@ func (i *ContactIndexer) Index(rt *runtime.Runtime, rebuild, cleanup bool) (stri
 
 	// doesn't exist or we are rebuilding, create it
 	if physicalIndex == "" || rebuild {
-		physicalIndex, err = i.createNewIndex(i.definition)
+		physicalIndex, err = i.createNewIndex(ctx, i.definition)
 		if err != nil {
 			return "", fmt.Errorf("error creating new index: %w", err)
 		}
@@ -57,7 +57,7 @@ func (i *ContactIndexer) Index(rt *runtime.Runtime, rebuild, cleanup bool) (stri
 		remapAlias = true
 	}
 
-	lastModified, err := i.GetESLastModified(physicalIndex)
+	lastModified, err := i.GetESLastModified(ctx, physicalIndex)
 	if err != nil {
 		return "", fmt.Errorf("error finding last modified: %w", err)
 	}
@@ -72,7 +72,7 @@ func (i *ContactIndexer) Index(rt *runtime.Runtime, rebuild, cleanup bool) (stri
 
 	// if the index didn't previously exist or we are rebuilding, remap to our alias
 	if remapAlias {
-		err := i.updateAlias(physicalIndex)
+		err := i.updateAlias(ctx, physicalIndex)
 		if err != nil {
 			return "", fmt.Errorf("error updating alias: %w", err)
 		}
@@ -81,7 +81,7 @@ func (i *ContactIndexer) Index(rt *runtime.Runtime, rebuild, cleanup bool) (stri
 
 	// cleanup our aliases if appropriate
 	if cleanup {
-		err := i.cleanupIndexes()
+		err := i.cleanupIndexes(ctx)
 		if err != nil {
 			return "", fmt.Errorf("error cleaning up old indexes: %w", err)
 		}
@@ -176,7 +176,7 @@ func (i *ContactIndexer) indexModified(ctx context.Context, db *sql.DB, index st
 
 		indexSubBatch := func(b *bytes.Buffer) error {
 			t := time.Now()
-			created, updated, deleted, err := i.indexBatch(index, b.Bytes())
+			created, updated, deleted, err := i.indexBatch(ctx, index, b.Bytes())
 			if err != nil {
 				return err
 			}

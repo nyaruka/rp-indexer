@@ -141,7 +141,7 @@ func (d *Daemon) reportStats(includeLag bool) {
 }
 
 func (d *Daemon) calculateLag(ctx context.Context, ix indexers.Indexer) (time.Duration, error) {
-	esLastModified, err := ix.GetESLastModified(ix.Name())
+	esLastModified, err := ix.GetESLastModified(ctx, ix.Name())
 	if err != nil {
 		return 0, fmt.Errorf("error getting ES last modified: %w", err)
 	}

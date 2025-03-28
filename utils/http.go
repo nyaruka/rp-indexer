@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -50,10 +51,10 @@ func shouldRetry(request *http.Request, response *http.Response, withDelay time.
 }
 
 // MakeJSONRequest is a utility function to make a JSON request, optionally decoding the response into the passed in struct
-func MakeJSONRequest(method string, url string, body []byte, dest any) (*http.Response, error) {
+func MakeJSONRequest(ctx context.Context, method string, url string, body []byte, dest any) (*http.Response, error) {
 	l := slog.With("url", url, "method", method)
 
-	req, _ := httpx.NewRequest(method, url, bytes.NewReader(body), map[string]string{"Content-Type": "application/json"})
+	req, _ := httpx.NewRequest(ctx, method, url, bytes.NewReader(body), map[string]string{"Content-Type": "application/json"})
 	resp, err := httpx.Do(http.DefaultClient, req, retryConfig, nil)
 	if err != nil {
 		l.Error("error making request", "error", err)

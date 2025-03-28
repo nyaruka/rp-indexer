@@ -1,6 +1,7 @@
 package utils_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,6 +12,8 @@ import (
 )
 
 func TestRetryServer(t *testing.T) {
+	ctx := context.Background()
+
 	responseCounter := 0
 	responses := []func(w http.ResponseWriter, r *http.Request){
 		func(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +35,7 @@ func TestRetryServer(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	resp, err := utils.MakeJSONRequest("GET", ts.URL, nil, nil)
+	resp, err := utils.MakeJSONRequest(ctx, "GET", ts.URL, nil, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode)
 

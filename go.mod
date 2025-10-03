@@ -1,6 +1,6 @@
 module github.com/nyaruka/rp-indexer/v10
 
-go 1.24
+go 1.25
 
 require (
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.45.3

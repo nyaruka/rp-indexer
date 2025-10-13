@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	_ "github.com/lib/pq"
 	"github.com/nyaruka/ezconf"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	indexer "github.com/nyaruka/rp-indexer/v10"
@@ -70,7 +69,7 @@ func main() {
 	log := slog.With("comp", "main")
 	log.Info("starting indexer", "version", version, "released", date)
 
-	rt.DB, err = sql.Open("postgres", cfg.DB)
+	rt.DB, err = sql.Open("pgx", cfg.DB)
 	if err != nil {
 		log.Error("unable to connect to database", "error", err)
 	}

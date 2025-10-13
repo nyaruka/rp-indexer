@@ -31,7 +31,7 @@ func setup(t *testing.T) *runtime.Runtime {
 	testDB, err := os.ReadFile("../testdb.sql")
 	require.NoError(t, err)
 
-	db, err := sql.Open("postgres", cfg.DB)
+	db, err := sql.Open("pgx", cfg.DB)
 	require.NoError(t, err)
 
 	_, err = db.Exec(string(testDB))

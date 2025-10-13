@@ -69,7 +69,7 @@ func main() {
 	log := slog.With("comp", "main")
 	log.Info("starting indexer", "version", version, "released", date)
 
-	rt.DB, err = sql.Open("pgx", cfg.DB)
+	rt.DB, err = sql.Open("postgres", cfg.DB)
 	if err != nil {
 		log.Error("unable to connect to database", "error", err)
 	}

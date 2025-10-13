@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/lib/pq"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/rp-indexer/v10/indexers"
 	"github.com/stretchr/testify/assert"

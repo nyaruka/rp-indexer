@@ -3,6 +3,7 @@ package runtime
 import (
 	"database/sql"
 
+	_ "github.com/jackc/pgx/v5/stdlib" // postgres driver
 	"github.com/nyaruka/gocommon/aws/cwatch"
 )
 

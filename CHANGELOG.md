@@ -1,3 +1,7 @@
+v10.3.2 (2025-10-13)
+-------------------------
+ * Revert switch from lib/pq to jackc/pgx/stdlib
+
 v10.3.1 (2025-10-13)
 -------------------------
  * Switch from lib/pq to jackc/pgx/stdlib

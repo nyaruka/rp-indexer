@@ -52,25 +52,3 @@ environment variables and parameters and for more details on each option.
  * `INDEXER_DEPLOYMENT_ID`: used for metrics reporting
  * `INDEXER_SENTRY_DSN`: DSN to use when logging errors to Sentry
  * `INDEXER_LOG_LEVEL`: logging level to use (default is `info`)
-
-## Development
-
-Once you've checked out the code, you can build the service with:
-
-```
-go build github.com/nyaruka/rp-indexer/cmd/rp-indexer
-```
-
-This will create a new executable in $GOPATH/bin called `rp-indexer`.
-
-To run the tests you need to create the test database:
-
-```
-$ createdb elastic_test
-```
-
-To run all of the tests:
-
-```
-go test ./... -p=1
-```

@@ -25,7 +25,7 @@ import (
 func setup(t *testing.T) *runtime.Runtime {
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
-	cfg.DB = "postgres://indexer_test:temba@localhost:5432/indexer_test?sslmode=disable"
+	cfg.DB = "postgres://indexer_test:temba@postgres:5432/indexer_test?sslmode=disable"
 	cfg.ContactsIndex = "indexer_test"
 
 	testDB, err := os.ReadFile("../testdb.sql")

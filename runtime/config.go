@@ -23,8 +23,8 @@ type Config struct {
 
 func NewDefaultConfig() *Config {
 	return &Config{
-		ElasticURL: "http://localhost:9200",
-		DB:         "postgres://localhost/temba?sslmode=disable",
+		ElasticURL: "http://elastic:9200",
+		DB:         "postgres://postgres/temba?sslmode=disable",
 		Poll:       5,
 		Rebuild:    false,
 		Cleanup:    false,

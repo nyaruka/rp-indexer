@@ -1,3 +1,7 @@
+v26.0.1 (2026-01-05)
+-------------------------
+ * Fix goreleaser config
+
 v26.0.0 (2026-01-05)
 -------------------------
  * Add devcontainer configuration

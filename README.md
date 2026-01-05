@@ -7,13 +7,6 @@
 
 Service for indexing RapidPro/TextIt contacts into Elasticsearch.
 
-## Deploying
-
-As it is a Go application, it compiles to a binary and that binary along with the config file is all
-you need to run it on your server. You can find bundles for each platform in the
-[releases directory](https://github.com/nyaruka/rp-indexer/releases). You should only run a single
-instance for a deployment.
-
 It can run in two modes:
 
 1) the default mode, which simply queries the ElasticSearch database, finds the most recently

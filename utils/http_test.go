@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/nyaruka/rp-indexer/v10/utils"
+	"github.com/nyaruka/rp-indexer/v26/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

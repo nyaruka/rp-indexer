@@ -16,8 +16,8 @@ import (
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/rp-indexer/v10/indexers"
-	"github.com/nyaruka/rp-indexer/v10/runtime"
+	"github.com/nyaruka/rp-indexer/v26/indexers"
+	"github.com/nyaruka/rp-indexer/v26/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

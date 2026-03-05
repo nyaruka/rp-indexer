@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/elastic"
-	"github.com/nyaruka/rp-indexer/v10/indexers"
+	"github.com/nyaruka/rp-indexer/v26/indexers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

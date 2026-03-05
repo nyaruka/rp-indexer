@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nyaruka/rp-indexer/v10/runtime"
+	"github.com/nyaruka/rp-indexer/v26/runtime"
 )
 
 //go:embed contacts.index.json

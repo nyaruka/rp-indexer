@@ -12,9 +12,9 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/nyaruka/ezconf"
 	"github.com/nyaruka/gocommon/aws/cwatch"
-	indexer "github.com/nyaruka/rp-indexer/v10"
-	"github.com/nyaruka/rp-indexer/v10/indexers"
-	"github.com/nyaruka/rp-indexer/v10/runtime"
+	indexer "github.com/nyaruka/rp-indexer/v26"
+	"github.com/nyaruka/rp-indexer/v26/indexers"
+	"github.com/nyaruka/rp-indexer/v26/runtime"
 	slogmulti "github.com/samber/slog-multi"
 	slogsentry "github.com/samber/slog-sentry/v2"
 )
